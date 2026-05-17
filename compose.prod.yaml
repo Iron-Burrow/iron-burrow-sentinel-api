@@ -1,0 +1,79 @@
+# Production compose file.
+# Differences from compose.yaml:
+#   - app is built from the Dockerfile (no source bind-mount, no dev server)
+#   - postgres port is NOT exposed to the host
+#   - secrets have no defaults — all must be supplied via environment or .env
+#   - restart: unless-stopped on every service
+#   - resource limits guard against runaway containers
+#   - structured JSON logging
+#
+# Usage:
+#   docker compose -f compose.prod.yaml build
+#   docker compose -f compose.prod.yaml up -d
+#   docker compose -f compose.prod.yaml logs -f
+#   docker compose -f compose.prod.yaml down
+
+name: iron-burrow-sentinel-api
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    # No ports: block — postgres is only reachable inside the compose network
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 512M
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runner
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      PORT: 3000
+      API_KEY_HASH_SECRET: ${API_KEY_HASH_SECRET}       # required — no default
+      SESSION_SECRET: ${SESSION_SECRET}                  # required — no default
+      RATE_LIMIT_WINDOW_SECONDS: ${RATE_LIMIT_WINDOW_SECONDS:-60}
+      RATE_LIMIT_REQUESTS: ${RATE_LIMIT_REQUESTS:-120}
+      RATE_LIMIT_COST_UNITS: ${RATE_LIMIT_COST_UNITS:-1200}
+    ports:
+      - "${PORT:-3000}:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 512M
+      replicas: 1
+
+volumes:
+  postgres-data:

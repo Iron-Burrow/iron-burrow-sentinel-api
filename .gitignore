@@ -1,0 +1,9 @@
+node_modules
+.pnpm-store
+dist
+coverage
+.env
+.env.production
+.DS_Store
+npm-debug.log*
+pnpm-debug.log*

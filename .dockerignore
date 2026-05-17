@@ -1,0 +1,12 @@
+!.env.example
+!.env.production.example
+.git
+.pnpm-store
+node_modules
+dist
+coverage
+.env
+.env.*
+.DS_Store
+npm-debug.log*
+pnpm-debug.log*
