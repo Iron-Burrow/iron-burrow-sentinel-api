@@ -35,6 +35,9 @@ export function renderDocsPage(): string {
           <tr><td>GET</td><td>/v1/mantle/assets/:address/holders</td><td>Yes</td></tr>
           <tr><td>GET</td><td>/v1/mantle/assets/:address/concentration</td><td>Yes</td></tr>
           <tr><td>GET</td><td>/v1/mantle/signals/liquidity-delta</td><td>Yes</td></tr>
+          <tr><td>GET</td><td>/v1/prices/latest?symbol=BTC</td><td>Yes</td></tr>
+          <tr><td>GET</td><td>/v1/prices/series?symbol=BTC&amp;range=7d</td><td>Yes</td></tr>
+          <tr><td>GET</td><td>/v1/prices/history?symbol=BTC</td><td>Yes</td></tr>
           <tr><td>POST</td><td>/v1/query</td><td>Yes</td></tr>
         </tbody>
       </table>

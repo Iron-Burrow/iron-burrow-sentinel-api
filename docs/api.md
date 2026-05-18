@@ -41,6 +41,21 @@ Every Mantle response includes metadata:
 }
 ```
 
+## Prices
+
+- `GET /v1/prices/latest`
+- `GET /v1/prices/series`
+- `GET /v1/prices/history`
+
+Price routes require an API key. Sentinel forwards allowed reads to the private Iron Burrow price-indexer Query Layer and never exposes the private service URL or token.
+
+Examples:
+
+- `GET /v1/prices/latest?symbol=BTC`
+- `GET /v1/prices/series?symbol=BTC&range=7d`
+
+When `range` is omitted from series/history requests, Sentinel sends `range=7d`. If the price backend is disabled or unavailable, Sentinel returns `503` with `PRICE_DISABLED` or `PRICE_QL_UNAVAILABLE`.
+
 ## Rate Limits
 
 Protected routes return:

@@ -200,9 +200,26 @@ Copy `.env.example` to `.env` for development. See `.env.production.example` for
 | `RATE_LIMIT_WINDOW_SECONDS` | No | Rolling window length for per-key rate limiting |
 | `RATE_LIMIT_REQUESTS` | No | Maximum requests per key per window |
 | `RATE_LIMIT_COST_UNITS` | No | Total cost-unit budget per key per window |
+| `PRICE_BACKEND` | No | Set to `service` to enable the private price-indexer Query Layer; defaults to `disabled`. |
+| `PRICE_QL_BASE_URL` | If `PRICE_BACKEND=service` | Private price QL base URL, for example `http://iron-burrow-price-indexer:3010`. |
+| `PRICE_QL_INTERNAL_TOKEN` | If `PRICE_BACKEND=service` | Internal bearer token shared with the price-indexer service. |
+| `PRICE_SERVICE_TIMEOUT_MS` | No | Timeout for private price QL requests. Defaults to `3000`. |
+| `PRICE_SERIES_DEFAULT_RANGE` | No | Default series range when omitted. Defaults to `7d`. |
 | `PORT` | No | HTTP listen port |
 
-> **Never commit real values for `API_KEY_HASH_SECRET` or `SESSION_SECRET`.** Rotate immediately if leaked.
+> **Never commit real values for `API_KEY_HASH_SECRET`, `SESSION_SECRET`, or `PRICE_QL_INTERNAL_TOKEN`.** Rotate immediately if leaked.
+
+### Private Price Query Layer
+
+Sentinel can proxy protected price reads to the external `iron-burrow-price-indexer` Query Layer. Keep that service private to the Compose/VPS network and expose prices only through Sentinel:
+
+```bash
+PRICE_BACKEND=service
+PRICE_QL_BASE_URL=http://iron-burrow-price-indexer:3010
+PRICE_QL_INTERNAL_TOKEN=replace-with-the-shared-internal-token
+```
+
+Supported Sentinel routes are `GET /v1/prices/latest`, `GET /v1/prices/series`, and `GET /v1/prices/history`. Series requests default to `range=7d`.
 
 ## Docker Run
 

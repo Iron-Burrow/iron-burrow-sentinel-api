@@ -16,6 +16,10 @@ export async function statusRoute(c: Context<AppBindings>): Promise<Response> {
       ok: db.ok,
       latency_ms: db.latencyMs
     },
+    price_backend: {
+      mode: services.env.PRICE_BACKEND,
+      configured: services.priceQlClient.configured
+    },
     public_boundary: {
       exposes_private_rpc: false,
       exposes_private_indexers: false,

@@ -10,6 +10,11 @@ export interface SentinelEnv {
   RATE_LIMIT_WINDOW_SECONDS: number;
   RATE_LIMIT_REQUESTS: number;
   RATE_LIMIT_COST_UNITS: number;
+  PRICE_BACKEND: "disabled" | "service";
+  PRICE_QL_BASE_URL: string;
+  PRICE_QL_INTERNAL_TOKEN: string;
+  PRICE_SERVICE_TIMEOUT_MS: number;
+  PRICE_SERIES_DEFAULT_RANGE: string;
 }
 
 function loadOptionalEnvFile(filePath = ".env"): void {
@@ -61,6 +66,10 @@ function readNodeEnv(): SentinelEnv["NODE_ENV"] {
   return value === "test" || value === "production" ? value : "development";
 }
 
+function readPriceBackend(): SentinelEnv["PRICE_BACKEND"] {
+  return process.env.PRICE_BACKEND === "service" ? "service" : "disabled";
+}
+
 export function loadEnv(): SentinelEnv {
   loadOptionalEnvFile();
 
@@ -72,6 +81,11 @@ export function loadEnv(): SentinelEnv {
     SESSION_SECRET: readString("SESSION_SECRET", "dev-sentinel-session-secret-change-me"),
     RATE_LIMIT_WINDOW_SECONDS: readPositiveInteger("RATE_LIMIT_WINDOW_SECONDS", 60),
     RATE_LIMIT_REQUESTS: readPositiveInteger("RATE_LIMIT_REQUESTS", 60),
-    RATE_LIMIT_COST_UNITS: readPositiveInteger("RATE_LIMIT_COST_UNITS", 600)
+    RATE_LIMIT_COST_UNITS: readPositiveInteger("RATE_LIMIT_COST_UNITS", 600),
+    PRICE_BACKEND: readPriceBackend(),
+    PRICE_QL_BASE_URL: readString("PRICE_QL_BASE_URL"),
+    PRICE_QL_INTERNAL_TOKEN: readString("PRICE_QL_INTERNAL_TOKEN"),
+    PRICE_SERVICE_TIMEOUT_MS: readPositiveInteger("PRICE_SERVICE_TIMEOUT_MS", 3000),
+    PRICE_SERIES_DEFAULT_RANGE: readString("PRICE_SERIES_DEFAULT_RANGE", "7d") || "7d"
   };
 }

@@ -6,6 +6,7 @@ import { rateLimitMiddleware } from "./middleware/rate-limit.js";
 import { requestIdMiddleware } from "./middleware/request-id.js";
 import { usageLogMiddleware } from "./middleware/usage-log.js";
 import { MockMantleProvider } from "./providers/mock-mantle-provider.js";
+import { HttpPriceQlClient } from "./providers/price-ql-client.js";
 import { createApiKeyRoute, listApiKeysRoute, revokeApiKeyRoute } from "./routes/api-keys.js";
 import {
   assetConcentrationRoute,
@@ -16,6 +17,7 @@ import {
   sourcesRoute
 } from "./routes/mantle.js";
 import { meRoute, usageRoute } from "./routes/me.js";
+import { latestPriceRoute, priceSeriesRoute } from "./routes/prices.js";
 import { healthRoute, statusRoute } from "./routes/status.js";
 import {
   apiKeysPageRoute,
@@ -37,16 +39,20 @@ import {
 import type { AppBindings, AppServices } from "./types.js";
 import { loadEnv, type SentinelEnv } from "./env.js";
 import type { MantleProvider } from "./providers/mantle-provider.js";
+import type { PriceQlClient } from "./providers/price-ql-client.js";
 
 export interface CreateAppOptions {
   env?: SentinelEnv;
   mantleProvider?: MantleProvider;
+  priceQlClient?: PriceQlClient;
 }
 
 export function createApp(options: CreateAppOptions = {}) {
+  const env = options.env ?? loadEnv();
   const services: AppServices = {
-    env: options.env ?? loadEnv(),
-    mantleProvider: options.mantleProvider ?? new MockMantleProvider()
+    env,
+    mantleProvider: options.mantleProvider ?? new MockMantleProvider(),
+    priceQlClient: options.priceQlClient ?? new HttpPriceQlClient(env)
   };
   const app = new Hono<AppBindings>();
 
@@ -94,6 +100,9 @@ export function createApp(options: CreateAppOptions = {}) {
   app.get("/v1/mantle/assets/:address/holders", requireApiKey, rateLimitMiddleware, assetHoldersRoute);
   app.get("/v1/mantle/assets/:address/concentration", requireApiKey, rateLimitMiddleware, assetConcentrationRoute);
   app.get("/v1/mantle/signals/liquidity-delta", requireApiKey, rateLimitMiddleware, liquidityDeltaRoute);
+  app.get("/v1/prices/latest", requireApiKey, rateLimitMiddleware, latestPriceRoute);
+  app.get("/v1/prices/series", requireApiKey, rateLimitMiddleware, priceSeriesRoute);
+  app.get("/v1/prices/history", requireApiKey, rateLimitMiddleware, priceSeriesRoute);
   app.post("/v1/query", requireApiKey, rateLimitMiddleware, queryRoute);
 
   app.notFound((c) =>

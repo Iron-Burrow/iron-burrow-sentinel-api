@@ -20,6 +20,11 @@ function testEnv(overrides: Partial<SentinelEnv> = {}): SentinelEnv {
     RATE_LIMIT_WINDOW_SECONDS: 60,
     RATE_LIMIT_REQUESTS: 60,
     RATE_LIMIT_COST_UNITS: 600,
+    PRICE_BACKEND: "disabled",
+    PRICE_QL_BASE_URL: "",
+    PRICE_QL_INTERNAL_TOKEN: "",
+    PRICE_SERVICE_TIMEOUT_MS: 3000,
+    PRICE_SERIES_DEFAULT_RANGE: "7d",
     ...overrides
   };
 }
@@ -107,6 +112,26 @@ test("public UI and status routes boot without private infrastructure details", 
   assert.equal(statusPayload.public_boundary.exposes_private_rpc, false);
   assert.equal(statusPayload.public_boundary.exposes_private_indexers, false);
   assert.equal(statusPayload.public_boundary.exposes_internal_gateway, false);
+});
+
+test("status reports price backend mode without leaking private QL details", async () => {
+  const app = createApp({
+    env: testEnv({
+      PRICE_BACKEND: "service",
+      PRICE_QL_BASE_URL: "http://iron-burrow-price-indexer:3010",
+      PRICE_QL_INTERNAL_TOKEN: "secret-price-token"
+    })
+  });
+
+  const response = await app.request("/v1/status");
+  const body = await response.text();
+  const payload = JSON.parse(body) as { price_backend: { mode: string; configured: boolean } };
+
+  assert.equal(response.status, 200);
+  assert.equal(payload.price_backend.mode, "service");
+  assert.equal(payload.price_backend.configured, true);
+  assert.doesNotMatch(body, /iron-burrow-price-indexer/u);
+  assert.doesNotMatch(body, /secret-price-token/u);
 });
 
 test("public Sentinel search resolves canonical assets and Mantle addresses", async () => {
@@ -425,6 +450,122 @@ test("protected Sentinel routes accept generated API keys and return partial met
   const summaryPayload = (await summary.json()) as { data: { metadata: { source: string; is_partial: boolean } } };
   assert.equal(summaryPayload.data.metadata.source, "sentinel-demo-provider");
   assert.equal(summaryPayload.data.metadata.is_partial, true);
+});
+
+test("price routes require API keys", async () => {
+  const app = createApp({ env: testEnv() });
+
+  const latest = await app.request("/v1/prices/latest?symbol=BTC");
+  const series = await app.request("/v1/prices/series?symbol=BTC");
+
+  assert.equal(latest.status, 401);
+  assert.equal(series.status, 401);
+});
+
+test("price routes return disabled and misconfigured responses", async () => {
+  const disabledApp = createApp({ env: testEnv() });
+  const disabledKey = await createKey(disabledApp);
+  const disabledResponse = await disabledApp.request("/v1/prices/latest?symbol=BTC", {
+    headers: { "x-api-key": disabledKey }
+  });
+  const disabledPayload = (await disabledResponse.json()) as { code: string; backend: string };
+
+  assert.equal(disabledResponse.status, 503);
+  assert.equal(disabledPayload.code, "PRICE_DISABLED");
+  assert.equal(disabledPayload.backend, "disabled");
+
+  const misconfiguredApp = createApp({
+    env: testEnv({
+      PRICE_BACKEND: "service",
+      PRICE_QL_BASE_URL: "",
+      PRICE_QL_INTERNAL_TOKEN: ""
+    })
+  });
+  const misconfiguredKey = await createKey(misconfiguredApp);
+  const misconfiguredResponse = await misconfiguredApp.request("/v1/prices/latest?symbol=BTC", {
+    headers: { "x-api-key": misconfiguredKey }
+  });
+  const misconfiguredPayload = (await misconfiguredResponse.json()) as { code: string };
+
+  assert.equal(misconfiguredResponse.status, 503);
+  assert.equal(misconfiguredPayload.code, "PRICE_QL_UNAVAILABLE");
+});
+
+test("price routes forward to the private QL with auth and default series range", async () => {
+  const originalFetch = globalThis.fetch;
+  const seenUrls: string[] = [];
+
+  globalThis.fetch = async (input, init) => {
+    seenUrls.push(String(input));
+    assert.equal((init?.headers as Record<string, string>).authorization, "Bearer test-price-token");
+
+    if (String(input).includes("/prices/latest")) {
+      return new Response(
+        JSON.stringify({
+          assetId: "asset_btc",
+          symbol: "BTC",
+          name: "Bitcoin",
+          quoteCurrency: "USD",
+          price: "70000",
+          sourceType: "coingecko",
+          publishedAt: "2026-05-18T00:00:00.000Z",
+          recordedAt: "2026-05-18T00:00:05.000Z",
+          staleness: {
+            ageSeconds: 5,
+            isStale: false,
+            warningThresholdSeconds: 600
+          }
+        }),
+        { status: 200, headers: { "content-type": "application/json" } }
+      );
+    }
+
+    return new Response(
+      JSON.stringify({
+        assetId: "asset_btc",
+        quoteCurrency: "USD",
+        range: new URL(String(input)).searchParams.get("range"),
+        points: []
+      }),
+      { status: 200, headers: { "content-type": "application/json" } }
+    );
+  };
+
+  const app = createApp({
+    env: testEnv({
+      PRICE_BACKEND: "service",
+      PRICE_QL_BASE_URL: "http://prices.example.test",
+      PRICE_QL_INTERNAL_TOKEN: "test-price-token",
+      PRICE_SERVICE_TIMEOUT_MS: 2500
+    })
+  });
+
+  try {
+    const apiKey = await createKey(app);
+    const headers = { "x-api-key": apiKey };
+    const latest = await app.request("/v1/prices/latest?symbol=BTC", { headers });
+    const defaultSeries = await app.request("/v1/prices/series?symbol=BTC", { headers });
+    const explicitSeries = await app.request("/v1/prices/series?symbol=BTC&range=1d", { headers });
+    const history = await app.request("/v1/prices/history?symbol=BTC", { headers });
+
+    assert.equal(latest.status, 200);
+    assert.equal(latest.headers.get("x-ratelimit-limit"), "60");
+    assert.equal(((await latest.json()) as { symbol: string }).symbol, "BTC");
+    assert.equal(defaultSeries.status, 200);
+    assert.equal(((await defaultSeries.json()) as { range: string }).range, "7d");
+    assert.equal(explicitSeries.status, 200);
+    assert.equal(((await explicitSeries.json()) as { range: string }).range, "1d");
+    assert.equal(history.status, 200);
+    assert.equal(((await history.json()) as { range: string }).range, "7d");
+    assert.deepEqual(seenUrls, [
+      "http://prices.example.test/prices/latest?symbol=BTC",
+      "http://prices.example.test/prices/series?symbol=BTC&range=7d",
+      "http://prices.example.test/prices/series?symbol=BTC&range=1d",
+      "http://prices.example.test/prices/series?symbol=BTC&range=7d"
+    ]);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });
 
 test("API keys can be revoked", async () => {
