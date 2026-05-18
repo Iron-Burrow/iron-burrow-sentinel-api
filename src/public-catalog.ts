@@ -2,6 +2,7 @@ import type { MantleAssetSummary, MantleConcentrationResponse, MantleHoldersResp
 
 export type PublicAssetChain = "mantle";
 export type PublicAssetIndexedStatus = "partial" | "demo";
+export type PublicAssetKind = "canonical" | "native" | "commodity";
 
 export interface PublicAssetRepresentation {
   chain: PublicAssetChain;
@@ -17,8 +18,19 @@ export interface PublicCanonicalAsset {
   symbol: string;
   name: string;
   description: string;
+  assetKind: PublicAssetKind;
+  aliases: string[];
+  relatedAssetSlugs: string[];
   tags: string[];
   representations: PublicAssetRepresentation[];
+}
+
+export interface PublicSimilarAsset {
+  slug: string;
+  symbol: string;
+  name: string;
+  matchKind: PublicSearchMatch["matchKind"] | "related_asset";
+  canonicalPath: string;
 }
 
 export interface PublicSearchMatch {
@@ -30,7 +42,15 @@ export interface PublicSearchMatch {
   symbol: string | null;
   name: string | null;
   address: string | null;
-  matchKind: "address" | "exact_symbol" | "exact_slug" | "exact_name" | "partial_symbol" | "partial_slug" | "partial_name";
+  matchKind:
+    | "address"
+    | "exact_symbol"
+    | "exact_slug"
+    | "exact_name"
+    | "exact_alias"
+    | "partial_symbol"
+    | "partial_slug"
+    | "partial_name";
 }
 
 export interface PublicResolveResult {

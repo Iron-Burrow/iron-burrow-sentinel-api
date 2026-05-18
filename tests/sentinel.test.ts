@@ -90,6 +90,14 @@ test("public UI and status routes boot without private infrastructure details", 
 test("public Sentinel search resolves canonical assets and Mantle addresses", async () => {
   const app = createApp({ env: testEnv() });
   const canonical = await app.request("/search?q=mBURROW");
+  const btcUpper = await app.request("/search?q=BTC");
+  const btcLower = await app.request("/search?q=btc");
+  const bitcoinAlias = await app.request("/search?q=bitcoin");
+  const ethUpper = await app.request("/search?q=ETH");
+  const ethereumAlias = await app.request("/search?q=ethereum");
+  const goldUpper = await app.request("/search?q=GOLD");
+  const goldLower = await app.request("/search?q=gold");
+  const xauAlias = await app.request("/search?q=xau");
   const wbtcSlug = await app.request("/search?q=wbtc");
   const wbtcSymbol = await app.request("/search?q=WBTC");
   const wbtcName = await app.request("/search?q=Wrapped%20Bitcoin");
@@ -101,6 +109,14 @@ test("public Sentinel search resolves canonical assets and Mantle addresses", as
 
   assert.equal(canonical.status, 302);
   assert.equal(canonical.headers.get("location"), "/asset/mburrow");
+  assert.equal(btcUpper.headers.get("location"), "/asset/btc");
+  assert.equal(btcLower.headers.get("location"), "/asset/btc");
+  assert.equal(bitcoinAlias.headers.get("location"), "/asset/btc");
+  assert.equal(ethUpper.headers.get("location"), "/asset/eth");
+  assert.equal(ethereumAlias.headers.get("location"), "/asset/eth");
+  assert.equal(goldUpper.headers.get("location"), "/asset/gold");
+  assert.equal(goldLower.headers.get("location"), "/asset/gold");
+  assert.equal(xauAlias.headers.get("location"), "/asset/gold");
   assert.equal(wbtcSlug.status, 302);
   assert.equal(wbtcSlug.headers.get("location"), "/asset/wbtc");
   assert.equal(wbtcSymbol.status, 302);
@@ -124,7 +140,11 @@ test("public Sentinel search resolves canonical assets and Mantle addresses", as
 test("public Sentinel asset pages render source-aware safe UI", async () => {
   const app = createApp({ env: testEnv() });
   const canonical = await app.request("/asset/mburrow");
+  const btc = await app.request("/asset/btc");
+  const eth = await app.request("/asset/eth");
+  const gold = await app.request("/asset/gold");
   const wbtc = await app.request("/asset/wbtc");
+  const meth = await app.request("/asset/meth");
   const mantle = await app.request("/mantle/asset/0x1111111111111111111111111111111111111111");
   const wbtcMantle = await app.request(`/mantle/asset/${seededWbtcAddress}`);
   const invalid = await app.request("/mantle/asset/not-an-address");
@@ -135,11 +155,38 @@ test("public Sentinel asset pages render source-aware safe UI", async () => {
   assert.match(canonicalHtml, /Open Mantle page/u);
   assert.match(canonicalHtml, /No direct node\/RPC\/indexer exposure/u);
 
+  assert.equal(btc.status, 200);
+  const btcHtml = await btc.text();
+  assert.match(btcHtml, /Bitcoin/u);
+  assert.match(btcHtml, /Native asset family/u);
+  assert.match(btcHtml, /No public representations are available yet/u);
+  assert.match(btcHtml, /WBTC/u);
+  assert.match(btcHtml, /Price, holders, and liquidity/u);
+  assert.doesNotMatch(btcHtml, /Open Mantle page/u);
+
+  assert.equal(eth.status, 200);
+  const ethHtml = await eth.text();
+  assert.match(ethHtml, /Ether/u);
+  assert.match(ethHtml, /mETH/u);
+
+  assert.equal(gold.status, 200);
+  const goldHtml = await gold.text();
+  assert.match(goldHtml, /Gold/u);
+  assert.match(goldHtml, /Commodity asset family/u);
+  assert.match(goldHtml, /No public representations are available yet/u);
+  assert.match(goldHtml, /No similar assets are listed yet/u);
+
   assert.equal(wbtc.status, 200);
   const wbtcHtml = await wbtc.text();
   assert.match(wbtcHtml, /Wrapped Bitcoin/u);
   assert.match(wbtcHtml, /WBTC/u);
   assert.match(wbtcHtml, /Open Mantle page/u);
+
+  assert.equal(meth.status, 200);
+  const methHtml = await meth.text();
+  assert.match(methHtml, /Similar Assets/u);
+  assert.match(methHtml, /ETH/u);
+  assert.doesNotMatch(methHtml, /href="\/asset\/meth"/u);
 
   assert.equal(mantle.status, 200);
   const mantleHtml = await mantle.text();
@@ -160,18 +207,34 @@ test("public Sentinel asset pages render source-aware safe UI", async () => {
 test("public Sentinel UI JSON endpoints expose only curated data", async () => {
   const app = createApp({ env: testEnv() });
   const resolve = await app.request("/api/public/resolve?q=mBURROW");
+  const goldAliasResolve = await app.request("/api/public/resolve?q=xau");
   const wbtcResolve = await app.request("/api/public/resolve?q=wbtc");
+  const btcAsset = await app.request("/api/public/assets/btc");
   const asset = await app.request("/api/public/assets/mburrow");
   const wbtcAsset = await app.request("/api/public/assets/wbtc");
+  const methAsset = await app.request("/api/public/assets/meth");
   const mantle = await app.request(`/api/public/mantle/assets/${seededWbtcAddress}`);
   const invalid = await app.request("/api/public/mantle/assets/not-an-address");
 
   const resolvePayload = (await resolve.json()) as { canonicalPath: string; matches: unknown[] };
+  const goldAliasResolvePayload = (await goldAliasResolve.json()) as {
+    canonicalPath: string;
+    matches: Array<{ matchKind: string }>;
+  };
   const wbtcResolvePayload = (await wbtcResolve.json()) as { canonicalPath: string; matches: unknown[] };
+  const btcAssetPayload = (await btcAsset.json()) as {
+    ok: boolean;
+    asset: { slug: string; assetKind: string; aliases: string[]; representations: unknown[] };
+    similar_assets: Array<{ slug: string; symbol: string; matchKind: string }>;
+  };
   const assetPayload = (await asset.json()) as { ok: boolean; asset: { slug: string } };
   const wbtcAssetPayload = (await wbtcAsset.json()) as {
     ok: boolean;
     asset: { slug: string; name: string; representations: unknown[] };
+  };
+  const methAssetPayload = (await methAsset.json()) as {
+    ok: boolean;
+    similar_assets: Array<{ slug: string; symbol: string; name: string; matchKind: string; canonicalPath: string }>;
   };
   const mantlePayload = (await mantle.json()) as {
     ok: boolean;
@@ -188,15 +251,35 @@ test("public Sentinel UI JSON endpoints expose only curated data", async () => {
   assert.equal(resolve.status, 200);
   assert.equal(resolvePayload.canonicalPath, "/asset/mburrow");
   assert.equal(resolvePayload.matches.length, 1);
+  assert.equal(goldAliasResolve.status, 200);
+  assert.equal(goldAliasResolvePayload.canonicalPath, "/asset/gold");
+  assert.equal(goldAliasResolvePayload.matches[0]?.matchKind, "exact_alias");
   assert.equal(wbtcResolve.status, 200);
   assert.equal(wbtcResolvePayload.canonicalPath, "/asset/wbtc");
   assert.equal(wbtcResolvePayload.matches.length, 1);
+  assert.equal(btcAsset.status, 200);
+  assert.equal(btcAssetPayload.asset.slug, "btc");
+  assert.equal(btcAssetPayload.asset.assetKind, "native");
+  assert.deepEqual(btcAssetPayload.asset.aliases, ["bitcoin"]);
+  assert.equal(btcAssetPayload.asset.representations.length, 0);
+  assert.equal(btcAssetPayload.similar_assets.some((similarAsset) => similarAsset.slug === "wbtc"), true);
   assert.equal(asset.status, 200);
   assert.equal(assetPayload.asset.slug, "mburrow");
   assert.equal(wbtcAsset.status, 200);
   assert.equal(wbtcAssetPayload.asset.slug, "wbtc");
   assert.equal(wbtcAssetPayload.asset.name, "Wrapped Bitcoin");
   assert.equal(wbtcAssetPayload.asset.representations.length, 1);
+  assert.equal(methAsset.status, 200);
+  assert.equal(Array.isArray(methAssetPayload.similar_assets), true);
+  assert.ok(methAssetPayload.similar_assets.length > 0);
+  assert.equal(methAssetPayload.similar_assets.some((similarAsset) => similarAsset.slug === "meth"), false);
+  for (const similarAsset of methAssetPayload.similar_assets) {
+    assert.equal(typeof similarAsset.slug, "string");
+    assert.equal(typeof similarAsset.symbol, "string");
+    assert.equal(typeof similarAsset.name, "string");
+    assert.equal(typeof similarAsset.matchKind, "string");
+    assert.equal(similarAsset.canonicalPath, `/asset/${similarAsset.slug}`);
+  }
   assert.equal(mantle.status, 200);
   assert.equal(mantlePayload.data.catalogAsset?.slug, "wbtc");
   assert.equal(mantlePayload.data.publicBoundary.exposesPrivateRpc, false);

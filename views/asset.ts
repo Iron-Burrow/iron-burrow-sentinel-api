@@ -1,7 +1,41 @@
-import type { PublicCanonicalAsset } from "../src/public-catalog.js";
+import type { PublicCanonicalAsset, PublicSimilarAsset } from "../src/public-catalog.js";
 import { emptyState, escapeHtml, renderLayout, statusPill } from "./layout.js";
 
-export function renderCanonicalAssetPage(asset: PublicCanonicalAsset): string {
+function formatMatchKind(matchKind: PublicSimilarAsset["matchKind"]): string {
+  switch (matchKind) {
+    case "related_asset":
+      return "Catalog related";
+    case "exact_slug":
+      return "Exact slug";
+    case "exact_symbol":
+      return "Exact symbol";
+    case "exact_name":
+      return "Exact name";
+    case "exact_alias":
+      return "Exact alias";
+    case "partial_slug":
+      return "Partial slug";
+    case "partial_symbol":
+      return "Partial symbol";
+    case "partial_name":
+      return "Partial name";
+    default:
+      return "Asset match";
+  }
+}
+
+function formatAssetKind(kind: PublicCanonicalAsset["assetKind"]): string {
+  switch (kind) {
+    case "native":
+      return "Native asset family";
+    case "commodity":
+      return "Commodity asset family";
+    default:
+      return "Canonical asset";
+  }
+}
+
+export function renderCanonicalAssetPage(asset: PublicCanonicalAsset, similarAssets: PublicSimilarAsset[] = []): string {
   const representations =
     asset.representations.length === 0
       ? emptyState("No public representations are available yet.", "Sentinel knows this canonical asset but has no safe chain page to expose.", "partial")
@@ -26,6 +60,28 @@ export function renderCanonicalAssetPage(asset: PublicCanonicalAsset): string {
           </tbody>
         </table>
       </div>`;
+  const similarAssetsMarkup =
+    similarAssets.length === 0
+      ? emptyState("No similar assets are listed yet.", "Sentinel has no related public canonical assets to show for this symbol.", "partial")
+      : `<div class="table-panel">
+        <table>
+          <thead><tr><th>Asset</th><th>Match</th><th>Route</th></tr></thead>
+          <tbody>
+            ${similarAssets
+              .map(
+                (similarAsset) => `<tr>
+                  <td>
+                    <strong>${escapeHtml(similarAsset.symbol)}</strong>
+                    <div class="subtle">${escapeHtml(similarAsset.name)}</div>
+                  </td>
+                  <td>${statusPill(formatMatchKind(similarAsset.matchKind), "partial")}</td>
+                  <td><a class="button secondary" href="${escapeHtml(similarAsset.canonicalPath)}">Open canonical asset</a></td>
+                </tr>`
+              )
+              .join("")}
+          </tbody>
+        </table>
+      </div>`;
 
   return renderLayout({
     title: asset.symbol,
@@ -34,8 +90,10 @@ export function renderCanonicalAssetPage(asset: PublicCanonicalAsset): string {
       <div>
         <p class="eyebrow">Canonical asset</p>
         <h1>${escapeHtml(asset.symbol)}</h1>
+        <p class="lead"><strong>${escapeHtml(asset.name)}</strong></p>
         <p class="lead">${escapeHtml(asset.description)}</p>
         <div class="tag-row">
+          <span class="tag">${escapeHtml(formatAssetKind(asset.assetKind))}</span>
           ${asset.tags.map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join("")}
         </div>
       </div>
@@ -55,6 +113,31 @@ export function renderCanonicalAssetPage(asset: PublicCanonicalAsset): string {
         ${statusPill("Honest partial coverage", "partial")}
       </div>
       ${representations}
+    </section>
+
+    <section class="panel">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Data readiness</p>
+          <h2>Price, holders, and liquidity</h2>
+        </div>
+        ${statusPill("Not available yet", "partial")}
+      </div>
+      <div class="meta-grid">
+        <div><dt>Price</dt><dd>No public price feed is exposed for this canonical asset yet.</dd></div>
+        <div><dt>Holders</dt><dd>Holder data requires a known indexed Mantle representation.</dd></div>
+        <div><dt>Liquidity</dt><dd>Liquidity signals are only shown when Sentinel has curated public data.</dd></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Similar Assets</p>
+          <h2>Related public canonical assets</h2>
+        </div>
+      </div>
+      ${similarAssetsMarkup}
     </section>`
   });
 }

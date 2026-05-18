@@ -7,6 +7,7 @@ function formatMatchKind(matchKind: PublicSearchMatch["matchKind"]): string {
     exact_symbol: "Exact symbol",
     exact_slug: "Exact slug",
     exact_name: "Exact name",
+    exact_alias: "Exact alias",
     partial_symbol: "Partial symbol",
     partial_slug: "Partial slug",
     partial_name: "Partial name"

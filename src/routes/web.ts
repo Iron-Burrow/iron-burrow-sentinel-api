@@ -17,6 +17,7 @@ import { renderUsagePage } from "../../views/usage.js";
 import {
   findPublicAssetByAddress,
   findPublicAssetBySlug,
+  findSimilarPublicAssets,
   resolvePublicAssetSearch
 } from "../db/public-assets.js";
 import {
@@ -106,7 +107,8 @@ export async function publicResolveRoute(c: Context<AppBindings>): Promise<Respo
 }
 
 export async function publicCanonicalAssetRoute(c: Context<AppBindings>): Promise<Response> {
-  const asset = await findPublicAssetBySlug(c.get("services").env.DATABASE_URL, c.req.param("slug") ?? "");
+  const connectionString = c.get("services").env.DATABASE_URL;
+  const asset = await findPublicAssetBySlug(connectionString, c.req.param("slug") ?? "");
 
   if (!asset) {
     return c.json(
@@ -119,9 +121,12 @@ export async function publicCanonicalAssetRoute(c: Context<AppBindings>): Promis
     );
   }
 
+  const similarAssets = await findSimilarPublicAssets(connectionString, asset);
+
   return c.json({
     ok: true,
     asset,
+    similar_assets: similarAssets,
     coverage: {
       known_representations: asset.representations.length,
       indexed_representations: asset.representations.filter((representation) => representation.indexedStatus === "partial").length,
@@ -153,13 +158,15 @@ export async function publicMantleAssetRoute(c: Context<AppBindings>): Promise<R
 
 export async function canonicalAssetPageRoute(c: Context<AppBindings>): Promise<Response> {
   const slug = c.req.param("slug") ?? "";
-  const asset = await findPublicAssetBySlug(c.get("services").env.DATABASE_URL, slug);
+  const connectionString = c.get("services").env.DATABASE_URL;
+  const asset = await findPublicAssetBySlug(connectionString, slug);
 
   if (!asset) {
     return c.html(renderAssetNotFoundPage(slug), 404);
   }
 
-  return c.html(renderCanonicalAssetPage(asset));
+  const similarAssets = await findSimilarPublicAssets(connectionString, asset);
+  return c.html(renderCanonicalAssetPage(asset, similarAssets));
 }
 
 export async function mantleAssetPageRoute(c: Context<AppBindings>): Promise<Response> {

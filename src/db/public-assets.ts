@@ -5,10 +5,12 @@ import {
   normalizeSlug,
   type PublicAssetChain,
   type PublicAssetIndexedStatus,
+  type PublicAssetKind,
   type PublicAssetRepresentation,
   type PublicCanonicalAsset,
   type PublicResolveResult,
-  type PublicSearchMatch
+  type PublicSearchMatch,
+  type PublicSimilarAsset
 } from "../public-catalog.js";
 import { query } from "./client.js";
 
@@ -17,6 +19,9 @@ interface PublicAssetRow {
   symbol: string;
   name: string;
   description: string;
+  asset_kind: PublicAssetKind;
+  aliases: string[];
+  related_asset_slugs: string[];
   tags: string[];
 }
 
@@ -31,7 +36,7 @@ interface PublicRepresentationRow {
 }
 
 const publicAssetSelect = `
-  select slug, symbol, name, description, tags
+  select slug, symbol, name, description, asset_kind, aliases, related_asset_slugs, tags
   from public_assets
   where is_active = true
 `;
@@ -76,6 +81,9 @@ function mapAssets(assetRows: PublicAssetRow[], representationRows: PublicRepres
     symbol: row.symbol,
     name: row.name,
     description: row.description,
+    assetKind: row.asset_kind,
+    aliases: row.aliases,
+    relatedAssetSlugs: row.related_asset_slugs,
     tags: row.tags,
     representations: representationsBySlug.get(row.slug) ?? []
   }));
@@ -92,6 +100,16 @@ function buildCanonicalMatch(asset: PublicCanonicalAsset, matchKind: PublicSearc
     name: asset.name,
     address: asset.representations[0]?.address ?? null,
     matchKind
+  };
+}
+
+function buildSimilarAsset(asset: PublicCanonicalAsset, matchKind: PublicSimilarAsset["matchKind"]): PublicSimilarAsset {
+  return {
+    slug: asset.slug,
+    symbol: asset.symbol,
+    name: asset.name,
+    matchKind,
+    canonicalPath: `/asset/${asset.slug}`
   };
 }
 
@@ -237,6 +255,27 @@ async function findExactMatches(
   return nameMatches.map((asset) => ({ asset, matchKind: "exact_name" }));
 }
 
+async function findAliasMatches(
+  connectionString: string,
+  normalizedQuery: string
+): Promise<Array<{ asset: PublicCanonicalAsset; matchKind: PublicSearchMatch["matchKind"] }>> {
+  const assets = await loadAssets(
+    connectionString,
+    `
+    ${publicAssetSelect}
+      and exists (
+        select 1
+        from unnest(aliases) alias
+        where lower(alias) = $1
+      )
+    order by slug asc
+    `,
+    [normalizedQuery.toLowerCase()]
+  );
+
+  return assets.map((asset) => ({ asset, matchKind: "exact_alias" }));
+}
+
 async function findPartialMatches(
   connectionString: string,
   normalizedQuery: string
@@ -249,6 +288,9 @@ async function findPartialMatches(
       symbol,
       name,
       description,
+      asset_kind,
+      aliases,
+      related_asset_slugs,
       tags,
       case
         when lower(slug) like $1 then 'partial_slug'
@@ -289,6 +331,46 @@ async function findPartialMatches(
   });
 }
 
+export async function findSimilarPublicAssets(
+  connectionString: string,
+  asset: PublicCanonicalAsset,
+  limit = 8
+): Promise<PublicSimilarAsset[]> {
+  if (asset.relatedAssetSlugs.length > 0) {
+    const relatedAssets = await loadAssets(
+      connectionString,
+      `
+      ${publicAssetSelect}
+        and slug = any($1::text[])
+      order by array_position($1::text[], slug), slug asc
+      `,
+      [asset.relatedAssetSlugs]
+    );
+
+    const relatedMatches = relatedAssets
+      .filter((candidate) => candidate.slug !== asset.slug)
+      .slice(0, limit)
+      .map((candidate) => buildSimilarAsset(candidate, "related_asset"));
+
+    return relatedMatches;
+  }
+
+  const collectSimilarAssets = async (queryValue: string): Promise<PublicSimilarAsset[]> =>
+    (await findPartialMatches(connectionString, normalizePublicSearchQuery(queryValue)))
+      .filter((candidate) => candidate.asset.slug !== asset.slug)
+      .slice(0, limit)
+      .map((candidate) => buildSimilarAsset(candidate.asset, candidate.matchKind));
+
+  const symbolMatches = await collectSimilarAssets(asset.symbol);
+
+  if (symbolMatches.length > 0) {
+    return symbolMatches;
+  }
+
+  const prefix = normalizePublicSearchQuery(asset.symbol).slice(0, 1);
+  return prefix ? collectSimilarAssets(prefix) : [];
+}
+
 export async function resolvePublicAssetSearch(
   connectionString: string,
   queryValue: string
@@ -324,14 +406,17 @@ export async function resolvePublicAssetSearch(
   }
 
   const exactMatches = await findExactMatches(connectionString, normalizedQuery);
+  const aliasMatches = exactMatches.length > 0 ? [] : await findAliasMatches(connectionString, normalizedQuery);
   const matches =
     exactMatches.length > 0
       ? exactMatches.map(({ asset, matchKind }) => buildCanonicalMatch(asset, matchKind))
+      : aliasMatches.length > 0
+        ? aliasMatches.map(({ asset, matchKind }) => buildCanonicalMatch(asset, matchKind))
       : (await findPartialMatches(connectionString, normalizedQuery)).map(({ asset, matchKind }) =>
           buildCanonicalMatch(asset, matchKind)
         );
 
-  if (matches.length === 1 && exactMatches.length === 1) {
+  if (matches.length === 1 && (exactMatches.length === 1 || aliasMatches.length === 1)) {
     return {
       ok: true,
       query: queryValue,
