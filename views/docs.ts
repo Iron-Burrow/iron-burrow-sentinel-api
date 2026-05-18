@@ -7,7 +7,7 @@ export function renderDocsPage(): string {
     body: `<section class="page-heading">
       <p class="eyebrow">Docs</p>
       <h1>Sentinel API quick reference</h1>
-      <p class="lead">Use API keys for account and Mantle intelligence routes. Public status and source routes are available without a key.</p>
+      <p class="lead">Use API keys for account and Mantle intelligence routes. Public status, source, search, and asset UI support routes are available without a key.</p>
     </section>
 
     <section class="panel">
@@ -23,6 +23,9 @@ export function renderDocsPage(): string {
         <tbody>
           <tr><td>GET</td><td>/v1/status</td><td>No</td></tr>
           <tr><td>GET</td><td>/v1/sources</td><td>No</td></tr>
+          <tr><td>GET</td><td>/api/public/resolve?q=mBURROW</td><td>No</td></tr>
+          <tr><td>GET</td><td>/api/public/assets/:slug</td><td>No</td></tr>
+          <tr><td>GET</td><td>/api/public/mantle/assets/:address</td><td>No</td></tr>
           <tr><td>POST</td><td>/v1/api-keys</td><td>No</td></tr>
           <tr><td>GET</td><td>/v1/me</td><td>Yes</td></tr>
           <tr><td>GET</td><td>/v1/me/usage</td><td>Yes</td></tr>

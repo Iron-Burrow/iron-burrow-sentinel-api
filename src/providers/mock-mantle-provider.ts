@@ -56,6 +56,63 @@ const holders: MantleHolder[] = [
   }
 ];
 
+const assetSummaries = new Map<string, Pick<MantleAssetSummary, "symbol" | "name" | "price_usd" | "liquidity_usd">>([
+  [
+    "0x1111111111111111111111111111111111111111",
+    {
+      symbol: "mBURROW",
+      name: "Mock Burrow Signal Token",
+      price_usd: "0.56",
+      liquidity_usd: "4285000.00"
+    }
+  ],
+  [
+    "0x2222222222222222222222222222222222222222",
+    {
+      symbol: "mDEMO",
+      name: "Mock Demo Liquidity Token",
+      price_usd: "0.14",
+      liquidity_usd: "1918000.00"
+    }
+  ],
+  [
+    "0x3333333333333333333333333333333333333333",
+    {
+      symbol: "WBTC",
+      name: "Wrapped Bitcoin",
+      price_usd: "64250.00",
+      liquidity_usd: "9825000.00"
+    }
+  ],
+  [
+    "0x4444444444444444444444444444444444444444",
+    {
+      symbol: "mETH",
+      name: "Mantle Staked Ether",
+      price_usd: "3180.00",
+      liquidity_usd: "7440000.00"
+    }
+  ],
+  [
+    "0x5555555555555555555555555555555555555555",
+    {
+      symbol: "USDY",
+      name: "Ondo US Dollar Yield",
+      price_usd: "1.04",
+      liquidity_usd: "5360000.00"
+    }
+  ],
+  [
+    "0x6666666666666666666666666666666666666666",
+    {
+      symbol: "MNT",
+      name: "Mantle",
+      price_usd: "0.82",
+      liquidity_usd: "12840000.00"
+    }
+  ]
+]);
+
 function normalizeAddress(address: string): string {
   return address.trim().toLowerCase();
 }
@@ -72,14 +129,22 @@ export class MockMantleProvider implements MantleProvider {
   }
 
   async getAssetSummary(address: string): Promise<MantleAssetSummary> {
+    const normalizedAddress = normalizeAddress(address);
+    const asset = assetSummaries.get(normalizedAddress) ?? {
+      symbol: "MANTLE",
+      name: "Mantle asset",
+      price_usd: "0.00",
+      liquidity_usd: "125000.00"
+    };
+
     return {
       chain: "mantle",
-      address: normalizeAddress(address),
-      symbol: "mBURROW",
-      name: "Mock Burrow Signal Token",
+      address: normalizedAddress,
+      symbol: asset.symbol,
+      name: asset.name,
       decimals: 18,
-      price_usd: "0.56",
-      liquidity_usd: "4285000.00",
+      price_usd: asset.price_usd,
+      liquidity_usd: asset.liquidity_usd,
       holder_count: 1284,
       top_holder_percent: "18.42",
       metadata

@@ -35,7 +35,7 @@ export async function sourcesRoute(c: Context<AppBindings>): Promise<Response> {
 }
 
 export async function assetSummaryRoute(c: Context<AppBindings>): Promise<Response> {
-  const address = c.req.param("address");
+  const address = c.req.param("address") ?? "";
   const invalid = validateAddress(c, address);
 
   if (invalid) {
@@ -49,7 +49,7 @@ export async function assetSummaryRoute(c: Context<AppBindings>): Promise<Respon
 }
 
 export async function assetHoldersRoute(c: Context<AppBindings>): Promise<Response> {
-  const address = c.req.param("address");
+  const address = c.req.param("address") ?? "";
   const invalid = validateAddress(c, address);
 
   if (invalid) {
@@ -65,7 +65,7 @@ export async function assetHoldersRoute(c: Context<AppBindings>): Promise<Respon
 }
 
 export async function assetConcentrationRoute(c: Context<AppBindings>): Promise<Response> {
-  const address = c.req.param("address");
+  const address = c.req.param("address") ?? "";
   const invalid = validateAddress(c, address);
 
   if (invalid) {

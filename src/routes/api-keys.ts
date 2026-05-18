@@ -88,7 +88,7 @@ export async function revokeApiKeyRoute(c: Context<AppBindings>): Promise<Respon
 
   const key = await revokeApiKey(services.env.DATABASE_URL, {
     userId: auth.user.id,
-    apiKeyId: c.req.param("id")
+    apiKeyId: c.req.param("id") ?? ""
   });
 
   if (!key) {

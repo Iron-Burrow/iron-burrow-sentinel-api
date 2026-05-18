@@ -19,11 +19,17 @@ import { meRoute, usageRoute } from "./routes/me.js";
 import { healthRoute, statusRoute } from "./routes/status.js";
 import {
   apiKeysPageRoute,
+  canonicalAssetPageRoute,
   dashboardPageRoute,
   docsPageRoute,
   landingPageRoute,
+  mantleAssetPageRoute,
   mantleDemoPageRoute,
+  publicCanonicalAssetRoute,
+  publicMantleAssetRoute,
+  publicResolveRoute,
   publicAssetRoute,
+  searchPageRoute,
   statusPageRoute,
   usagePageRoute
 } from "./routes/web.js";
@@ -61,11 +67,17 @@ export function createApp(options: CreateAppOptions = {}) {
   app.get("/", landingPageRoute);
   app.get("/docs", docsPageRoute);
   app.get("/app", dashboardPageRoute);
+  app.get("/search", searchPageRoute);
+  app.get("/asset/:slug", canonicalAssetPageRoute);
+  app.get("/mantle/asset/:address", mantleAssetPageRoute);
   app.get("/api-keys", apiKeysPageRoute);
   app.get("/usage", usagePageRoute);
   app.get("/status", statusPageRoute);
   app.get("/mantle-demo", mantleDemoPageRoute);
   app.get("/public/:file", publicAssetRoute);
+  app.get("/api/public/resolve", publicResolveRoute);
+  app.get("/api/public/assets/:slug", publicCanonicalAssetRoute);
+  app.get("/api/public/mantle/assets/:address", publicMantleAssetRoute);
 
   app.get("/health", healthRoute);
   app.get("/v1/status", statusRoute);

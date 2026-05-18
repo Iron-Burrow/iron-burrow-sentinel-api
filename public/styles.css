@@ -87,6 +87,34 @@ nav a:hover {
   color: var(--accent-strong);
 }
 
+.nav-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1 1 260px;
+  max-width: 360px;
+  padding: 5px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.nav-search input {
+  min-height: 34px;
+  border: 0;
+}
+
+.nav-search button {
+  min-height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 800;
+  cursor: pointer;
+}
+
 main {
   width: min(1120px, calc(100% - 32px));
   margin: 0 auto;
@@ -174,6 +202,27 @@ h2 {
   color: var(--accent-strong);
 }
 
+.search-card {
+  display: grid;
+  gap: 8px;
+  max-width: 680px;
+  margin-top: 22px;
+}
+
+.search-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.search-row input {
+  border: 0;
+}
+
 .signal-board,
 .panel {
   border: 1px solid var(--line);
@@ -246,6 +295,94 @@ h2 {
   background: #fff5d7;
   color: var(--warn);
   font-weight: 800;
+}
+
+.pill.healthy {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+.pill.unavailable {
+  background: #ffe2e2;
+  color: var(--bad);
+}
+
+.banner,
+.empty-state {
+  margin-top: 16px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcfd;
+}
+
+.banner p,
+.empty-state p {
+  margin: 6px 0 0;
+  color: var(--muted);
+}
+
+.banner.unavailable,
+.empty-state.unavailable {
+  border-color: #f0b8b8;
+  background: #fff5f5;
+}
+
+.tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 9px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcfd;
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.mono {
+  font-family: "SFMono-Regular", Consolas, monospace;
+}
+
+.subtle {
+  color: var(--muted);
+}
+
+.mini-panel {
+  align-self: stretch;
+}
+
+.asset-hero {
+  grid-template-columns: minmax(0, 1.1fr) minmax(280px, 0.9fr);
+}
+
+.search-results-list {
+  display: grid;
+  gap: 12px;
+}
+
+.search-result-card {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: center;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+}
+
+.search-result-card p {
+  margin: 6px 0 0;
+  color: var(--muted);
 }
 
 .meta-grid {

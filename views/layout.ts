@@ -1,7 +1,8 @@
 export interface LayoutOptions {
   title: string;
-  active?: "home" | "docs" | "dashboard" | "keys" | "usage" | "status" | "mantle";
+  active?: "home" | "docs" | "dashboard" | "keys" | "usage" | "status" | "mantle" | "asset";
   body: string;
+  searchQuery?: string;
   script?: string;
 }
 
@@ -16,6 +17,17 @@ export function escapeHtml(value: string): string {
 
 function navLink(href: string, label: string, active: boolean): string {
   return `<a href="${href}"${active ? ' aria-current="page"' : ""}>${escapeHtml(label)}</a>`;
+}
+
+export function statusPill(label: string, tone: "healthy" | "partial" | "syncing" | "unavailable" = "partial"): string {
+  return `<span class="pill ${tone}">${escapeHtml(label)}</span>`;
+}
+
+export function emptyState(title: string, detail: string, tone: "partial" | "unavailable" = "partial"): string {
+  return `<div class="empty-state ${tone}">
+    <strong>${escapeHtml(title)}</strong>
+    <p>${escapeHtml(detail)}</p>
+  </div>`;
 }
 
 export function renderLayout(options: LayoutOptions): string {
@@ -39,6 +51,7 @@ export function renderLayout(options: LayoutOptions): string {
         </span>
       </a>
       <nav aria-label="Primary">
+        ${navLink("/", "Home", options.active === "home")}
         ${navLink("/docs", "Docs", options.active === "docs")}
         ${navLink("/app", "Dashboard", options.active === "dashboard")}
         ${navLink("/api-keys", "API Keys", options.active === "keys")}
@@ -46,6 +59,10 @@ export function renderLayout(options: LayoutOptions): string {
         ${navLink("/status", "Status", options.active === "status")}
         ${navLink("/mantle-demo", "Mantle Demo", options.active === "mantle")}
       </nav>
+      <form class="nav-search" action="/search" method="get">
+        <input name="q" value="${escapeHtml(options.searchQuery ?? "")}" placeholder="Search mBURROW or 0x..." aria-label="Search Sentinel assets" />
+        <button type="submit">Go</button>
+      </form>
     </header>
     <main>
       ${options.body}

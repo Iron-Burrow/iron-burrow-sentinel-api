@@ -10,6 +10,22 @@ export function renderDashboardPage(): string {
       <p class="lead">A compact public control surface for creating keys, checking status, reading docs, and testing the Mantle demo API.</p>
     </section>
 
+    <section class="panel">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Search</p>
+          <h2>Resolve public Mantle intelligence</h2>
+        </div>
+      </div>
+      <form class="search-card" action="/search" method="get">
+        <label for="workspace-search">Canonical asset, symbol, name, or Mantle address</label>
+        <div class="search-row">
+          <input id="workspace-search" name="q" placeholder="mBURROW or 0x1111111111111111111111111111111111111111" />
+          <button class="button" type="submit">Resolve</button>
+        </div>
+      </form>
+    </section>
+
     <section class="grid two">
       <a class="panel link-panel" href="/api-keys">
         <h2>API keys</h2>
