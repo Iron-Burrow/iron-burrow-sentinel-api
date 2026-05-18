@@ -9,6 +9,7 @@ export interface PublicAssetRepresentation {
   address: string;
   canonicalPath: string;
   indexedStatus: PublicAssetIndexedStatus;
+  logoUrl: string | null;
   name: string;
   symbol: string;
 }
@@ -20,6 +21,7 @@ export interface PublicCanonicalAsset {
   description: string;
   assetKind: PublicAssetKind;
   aliases: string[];
+  logoUrl: string | null;
   relatedAssetSlugs: string[];
   tags: string[];
   representations: PublicAssetRepresentation[];
@@ -31,6 +33,7 @@ export interface PublicSimilarAsset {
   name: string;
   matchKind: PublicSearchMatch["matchKind"] | "related_asset";
   canonicalPath: string;
+  logoUrl: string | null;
 }
 
 export interface PublicSearchMatch {
@@ -42,6 +45,7 @@ export interface PublicSearchMatch {
   symbol: string | null;
   name: string | null;
   address: string | null;
+  logoUrl: string | null;
   matchKind:
     | "address"
     | "exact_symbol"
@@ -70,6 +74,7 @@ export interface PublicMantleAssetPayload {
   holders: MantleHoldersResponse;
   concentration: MantleConcentrationResponse;
   catalogAsset: PublicCanonicalAsset | null;
+  logoUrl: string | null;
   publicBoundary: {
     exposesPrivateRpc: false;
     exposesPrivateIndexers: false;

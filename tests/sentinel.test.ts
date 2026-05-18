@@ -6,6 +6,7 @@ import { generateApiKey, getApiKeyPrefix, hashApiKey, hashesMatch } from "../src
 import { query } from "../src/db/client.js";
 import { resolvePublicAssetSearch } from "../src/db/public-assets.js";
 import type { SentinelEnv } from "../src/env.js";
+import { resolveTokenMediaUrl } from "../src/media/token-media.js";
 
 const seededWbtcAddress = "0x3333333333333333333333333333333333333333";
 
@@ -50,6 +51,19 @@ test("API key generation hashes keys and keeps stable prefixes", () => {
   assert.equal(hashesMatch(hash, hashApiKey(`${key}x`, "secret")), false);
 });
 
+test("token media resolver maps known public logos only", () => {
+  assert.equal(resolveTokenMediaUrl({ symbol: "BTC" }), "/media/bitcoin-btc-logo.png");
+  assert.equal(resolveTokenMediaUrl({ name: "Bitcoin" }), "/media/bitcoin-btc-logo.png");
+  assert.equal(resolveTokenMediaUrl({ symbol: "ETH" }), "/media/ethereum-eth-logo.png");
+  assert.equal(resolveTokenMediaUrl({ name: "Ether" }), "/media/ethereum-eth-logo.png");
+  assert.equal(resolveTokenMediaUrl({ name: "Ethereum" }), "/media/ethereum-eth-logo.png");
+  assert.equal(resolveTokenMediaUrl({ symbol: "WBTC" }), "/media/wrapped-bitcoin-wbtc-icon.png");
+  assert.equal(resolveTokenMediaUrl({ name: "Wrapped Bitcoin" }), "/media/wrapped-bitcoin-wbtc-icon.png");
+  assert.equal(resolveTokenMediaUrl({ address: seededWbtcAddress }), "/media/wrapped-bitcoin-wbtc-icon.png");
+  assert.equal(resolveTokenMediaUrl({ symbol: "GOLD", name: "Gold" }), null);
+  assert.equal(resolveTokenMediaUrl({ symbol: "mETH", name: "Mantle Staked Ether" }), null);
+});
+
 test("public UI and status routes boot without private infrastructure details", async () => {
   const app = createApp({ env: testEnv() });
 
@@ -59,6 +73,9 @@ test("public UI and status routes boot without private infrastructure details", 
   const webStatus = await app.request("/status");
   const styles = await app.request("/public/styles.css");
   const script = await app.request("/public/app.js");
+  const media = await app.request("/media/bitcoin-btc-logo.png");
+  const invalidMediaName = await app.request("/media/../bitcoin-btc-logo.png");
+  const invalidMediaType = await app.request("/media/bitcoin-btc-logo.txt");
   const status = await app.request("/v1/status");
   const sources = await app.request("/v1/sources");
   const statusPayload = (await status.json()) as {
@@ -80,6 +97,11 @@ test("public UI and status routes boot without private infrastructure details", 
   assert.match(styles.headers.get("content-type") ?? "", /text\/css/u);
   assert.equal(script.status, 200);
   assert.match(script.headers.get("content-type") ?? "", /javascript/u);
+  assert.equal(media.status, 200);
+  assert.match(media.headers.get("content-type") ?? "", /image\/png/u);
+  assert.equal(media.headers.get("cache-control"), "public, max-age=3600");
+  assert.equal(invalidMediaName.status, 404);
+  assert.equal(invalidMediaType.status, 404);
   assert.equal(status.status, 200);
   assert.equal(sources.status, 200);
   assert.equal(statusPayload.public_boundary.exposes_private_rpc, false);
@@ -158,6 +180,7 @@ test("public Sentinel asset pages render source-aware safe UI", async () => {
   assert.equal(btc.status, 200);
   const btcHtml = await btc.text();
   assert.match(btcHtml, /Bitcoin/u);
+  assert.match(btcHtml, /<img class="token-logo" src="\/media\/bitcoin-btc-logo\.png" alt="Bitcoin logo"/u);
   assert.match(btcHtml, /Native asset family/u);
   assert.match(btcHtml, /No public representations are available yet/u);
   assert.match(btcHtml, /WBTC/u);
@@ -172,6 +195,8 @@ test("public Sentinel asset pages render source-aware safe UI", async () => {
   assert.equal(gold.status, 200);
   const goldHtml = await gold.text();
   assert.match(goldHtml, /Gold/u);
+  assert.match(goldHtml, /token-logo token-badge/u);
+  assert.doesNotMatch(goldHtml, /<img class="token-logo" src="\/media\//u);
   assert.match(goldHtml, /Commodity asset family/u);
   assert.match(goldHtml, /No public representations are available yet/u);
   assert.match(goldHtml, /No similar assets are listed yet/u);
@@ -180,6 +205,7 @@ test("public Sentinel asset pages render source-aware safe UI", async () => {
   const wbtcHtml = await wbtc.text();
   assert.match(wbtcHtml, /Wrapped Bitcoin/u);
   assert.match(wbtcHtml, /WBTC/u);
+  assert.match(wbtcHtml, /\/media\/wrapped-bitcoin-wbtc-icon\.png/u);
   assert.match(wbtcHtml, /Open Mantle page/u);
 
   assert.equal(meth.status, 200);
@@ -198,6 +224,7 @@ test("public Sentinel asset pages render source-aware safe UI", async () => {
   assert.equal(wbtcMantle.status, 200);
   const wbtcMantleHtml = await wbtcMantle.text();
   assert.match(wbtcMantleHtml, /Wrapped Bitcoin/u);
+  assert.match(wbtcMantleHtml, /<img class="token-logo" src="\/media\/wrapped-bitcoin-wbtc-icon\.png" alt="Wrapped Bitcoin logo"/u);
   assert.match(wbtcMantleHtml, /Open canonical asset/u);
 
   assert.equal(invalid.status, 400);
@@ -207,6 +234,7 @@ test("public Sentinel asset pages render source-aware safe UI", async () => {
 test("public Sentinel UI JSON endpoints expose only curated data", async () => {
   const app = createApp({ env: testEnv() });
   const resolve = await app.request("/api/public/resolve?q=mBURROW");
+  const btcResolve = await app.request("/api/public/resolve?q=BTC");
   const goldAliasResolve = await app.request("/api/public/resolve?q=xau");
   const wbtcResolve = await app.request("/api/public/resolve?q=wbtc");
   const btcAsset = await app.request("/api/public/assets/btc");
@@ -217,6 +245,10 @@ test("public Sentinel UI JSON endpoints expose only curated data", async () => {
   const invalid = await app.request("/api/public/mantle/assets/not-an-address");
 
   const resolvePayload = (await resolve.json()) as { canonicalPath: string; matches: unknown[] };
+  const btcResolvePayload = (await btcResolve.json()) as {
+    canonicalPath: string;
+    matches: Array<{ logoUrl: string | null }>;
+  };
   const goldAliasResolvePayload = (await goldAliasResolve.json()) as {
     canonicalPath: string;
     matches: Array<{ matchKind: string }>;
@@ -224,13 +256,13 @@ test("public Sentinel UI JSON endpoints expose only curated data", async () => {
   const wbtcResolvePayload = (await wbtcResolve.json()) as { canonicalPath: string; matches: unknown[] };
   const btcAssetPayload = (await btcAsset.json()) as {
     ok: boolean;
-    asset: { slug: string; assetKind: string; aliases: string[]; representations: unknown[] };
-    similar_assets: Array<{ slug: string; symbol: string; matchKind: string }>;
+    asset: { slug: string; assetKind: string; aliases: string[]; logoUrl: string | null; representations: unknown[] };
+    similar_assets: Array<{ slug: string; symbol: string; matchKind: string; logoUrl: string | null }>;
   };
   const assetPayload = (await asset.json()) as { ok: boolean; asset: { slug: string } };
   const wbtcAssetPayload = (await wbtcAsset.json()) as {
     ok: boolean;
-    asset: { slug: string; name: string; representations: unknown[] };
+    asset: { slug: string; name: string; logoUrl: string | null; representations: Array<{ logoUrl: string | null }> };
   };
   const methAssetPayload = (await methAsset.json()) as {
     ok: boolean;
@@ -239,6 +271,7 @@ test("public Sentinel UI JSON endpoints expose only curated data", async () => {
   const mantlePayload = (await mantle.json()) as {
     ok: boolean;
     data: {
+      logoUrl: string | null;
       catalogAsset: { slug: string } | null;
       publicBoundary: {
         exposesPrivateRpc: boolean;
@@ -251,6 +284,9 @@ test("public Sentinel UI JSON endpoints expose only curated data", async () => {
   assert.equal(resolve.status, 200);
   assert.equal(resolvePayload.canonicalPath, "/asset/mburrow");
   assert.equal(resolvePayload.matches.length, 1);
+  assert.equal(btcResolve.status, 200);
+  assert.equal(btcResolvePayload.canonicalPath, "/asset/btc");
+  assert.equal(btcResolvePayload.matches[0]?.logoUrl, "/media/bitcoin-btc-logo.png");
   assert.equal(goldAliasResolve.status, 200);
   assert.equal(goldAliasResolvePayload.canonicalPath, "/asset/gold");
   assert.equal(goldAliasResolvePayload.matches[0]?.matchKind, "exact_alias");
@@ -260,15 +296,22 @@ test("public Sentinel UI JSON endpoints expose only curated data", async () => {
   assert.equal(btcAsset.status, 200);
   assert.equal(btcAssetPayload.asset.slug, "btc");
   assert.equal(btcAssetPayload.asset.assetKind, "native");
+  assert.equal(btcAssetPayload.asset.logoUrl, "/media/bitcoin-btc-logo.png");
   assert.deepEqual(btcAssetPayload.asset.aliases, ["bitcoin"]);
   assert.equal(btcAssetPayload.asset.representations.length, 0);
   assert.equal(btcAssetPayload.similar_assets.some((similarAsset) => similarAsset.slug === "wbtc"), true);
+  assert.equal(
+    btcAssetPayload.similar_assets.find((similarAsset) => similarAsset.slug === "wbtc")?.logoUrl,
+    "/media/wrapped-bitcoin-wbtc-icon.png"
+  );
   assert.equal(asset.status, 200);
   assert.equal(assetPayload.asset.slug, "mburrow");
   assert.equal(wbtcAsset.status, 200);
   assert.equal(wbtcAssetPayload.asset.slug, "wbtc");
   assert.equal(wbtcAssetPayload.asset.name, "Wrapped Bitcoin");
+  assert.equal(wbtcAssetPayload.asset.logoUrl, "/media/wrapped-bitcoin-wbtc-icon.png");
   assert.equal(wbtcAssetPayload.asset.representations.length, 1);
+  assert.equal(wbtcAssetPayload.asset.representations[0]?.logoUrl, "/media/wrapped-bitcoin-wbtc-icon.png");
   assert.equal(methAsset.status, 200);
   assert.equal(Array.isArray(methAssetPayload.similar_assets), true);
   assert.ok(methAssetPayload.similar_assets.length > 0);
@@ -281,6 +324,7 @@ test("public Sentinel UI JSON endpoints expose only curated data", async () => {
     assert.equal(similarAsset.canonicalPath, `/asset/${similarAsset.slug}`);
   }
   assert.equal(mantle.status, 200);
+  assert.equal(mantlePayload.data.logoUrl, "/media/wrapped-bitcoin-wbtc-icon.png");
   assert.equal(mantlePayload.data.catalogAsset?.slug, "wbtc");
   assert.equal(mantlePayload.data.publicBoundary.exposesPrivateRpc, false);
   assert.equal(mantlePayload.data.publicBoundary.exposesPrivateIndexers, false);

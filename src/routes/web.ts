@@ -25,9 +25,11 @@ import {
   normalizeMantleAddress,
   type PublicMantleAssetPayload
 } from "../public-catalog.js";
+import { resolveTokenMediaUrl } from "../media/token-media.js";
 import type { AppBindings } from "../types.js";
 
 const publicDir = resolve(fileURLToPath(new URL("../../public", import.meta.url)));
+const mediaDir = resolve(fileURLToPath(new URL("../../media", import.meta.url)));
 const contentTypes = new Map([
   [".css", "text/css; charset=utf-8"],
   [".js", "text/javascript; charset=utf-8"],
@@ -205,6 +207,13 @@ async function buildPublicMantleAssetPayload(
     holders,
     concentration,
     catalogAsset,
+    logoUrl:
+      catalogAsset?.logoUrl ??
+      resolveTokenMediaUrl({
+        address,
+        symbol: summary.symbol,
+        name: summary.name
+      }),
     publicBoundary: {
       exposesPrivateRpc: false,
       exposesPrivateIndexers: false,
@@ -214,6 +223,14 @@ async function buildPublicMantleAssetPayload(
 }
 
 export async function publicAssetRoute(c: Context<AppBindings>): Promise<Response> {
+  return staticAssetRoute(c, publicDir);
+}
+
+export async function mediaAssetRoute(c: Context<AppBindings>): Promise<Response> {
+  return staticAssetRoute(c, mediaDir);
+}
+
+async function staticAssetRoute(c: Context<AppBindings>, assetDir: string): Promise<Response> {
   const fileName = c.req.param("file") ?? "";
 
   if (!/^[a-zA-Z0-9._-]+$/u.test(fileName)) {
@@ -227,7 +244,7 @@ export async function publicAssetRoute(c: Context<AppBindings>): Promise<Respons
   }
 
   try {
-    const body = await readFile(resolve(publicDir, fileName));
+    const body = await readFile(resolve(assetDir, fileName));
     return new Response(body, {
       headers: {
         "content-type": contentType,

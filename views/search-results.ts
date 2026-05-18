@@ -1,5 +1,5 @@
 import type { PublicSearchMatch } from "../src/public-catalog.js";
-import { emptyState, escapeHtml, renderLayout } from "./layout.js";
+import { emptyState, escapeHtml, renderLayout, renderTokenIcon } from "./layout.js";
 
 function formatMatchKind(matchKind: PublicSearchMatch["matchKind"]): string {
   const labels: Record<PublicSearchMatch["matchKind"], string> = {
@@ -24,14 +24,22 @@ export function renderSearchResultsPage(input: { query: string; matches: PublicS
         ${input.matches
           .map(
             (match) => `<article class="search-result-card">
-              <div>
-                <p class="eyebrow">${escapeHtml(formatMatchKind(match.matchKind))}</p>
-                <h2>${escapeHtml(match.title)}</h2>
-                <p>${escapeHtml(match.name ?? match.address ?? "Sentinel public result")}</p>
-                <div class="tag-row">
-                  <span class="tag">${escapeHtml(match.scope)}</span>
-                  <span class="tag">${escapeHtml(match.kind)}</span>
-                  ${match.address ? `<span class="tag mono">${escapeHtml(match.address)}</span>` : ""}
+              <div class="asset-row search-result-main">
+                ${renderTokenIcon({
+                  logoUrl: match.logoUrl,
+                  symbol: match.symbol ?? match.title,
+                  name: match.name ?? match.title,
+                  className: "token-row-icon"
+                })}
+                <div>
+                  <p class="eyebrow">${escapeHtml(formatMatchKind(match.matchKind))}</p>
+                  <h2>${escapeHtml(match.title)}</h2>
+                  <p>${escapeHtml(match.name ?? match.address ?? "Sentinel public result")}</p>
+                  <div class="tag-row">
+                    <span class="tag">${escapeHtml(match.scope)}</span>
+                    <span class="tag">${escapeHtml(match.kind)}</span>
+                    ${match.address ? `<span class="tag mono">${escapeHtml(match.address)}</span>` : ""}
+                  </div>
                 </div>
               </div>
               <a class="button" href="${escapeHtml(match.canonicalPath)}">Open</a>

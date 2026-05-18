@@ -12,6 +12,7 @@ import {
   type PublicSearchMatch,
   type PublicSimilarAsset
 } from "../public-catalog.js";
+import { resolveTokenMediaUrl } from "../media/token-media.js";
 import { query } from "./client.js";
 
 interface PublicAssetRow {
@@ -57,11 +58,18 @@ const publicRepresentationSelect = `
 `;
 
 function mapRepresentation(row: PublicRepresentationRow): PublicAssetRepresentation {
+  const address = normalizeMantleAddress(row.address);
+
   return {
     chain: row.chain,
-    address: normalizeMantleAddress(row.address),
+    address,
     canonicalPath: row.canonical_path,
     indexedStatus: row.indexed_status,
+    logoUrl: resolveTokenMediaUrl({
+      address,
+      symbol: row.symbol,
+      name: row.name
+    }),
     name: row.name,
     symbol: row.symbol
   };
@@ -83,6 +91,11 @@ function mapAssets(assetRows: PublicAssetRow[], representationRows: PublicRepres
     description: row.description,
     assetKind: row.asset_kind,
     aliases: row.aliases,
+    logoUrl: resolveTokenMediaUrl({
+      slug: row.slug,
+      symbol: row.symbol,
+      name: row.name
+    }),
     relatedAssetSlugs: row.related_asset_slugs,
     tags: row.tags,
     representations: representationsBySlug.get(row.slug) ?? []
@@ -99,6 +112,7 @@ function buildCanonicalMatch(asset: PublicCanonicalAsset, matchKind: PublicSearc
     symbol: asset.symbol,
     name: asset.name,
     address: asset.representations[0]?.address ?? null,
+    logoUrl: asset.logoUrl,
     matchKind
   };
 }
@@ -109,7 +123,8 @@ function buildSimilarAsset(asset: PublicCanonicalAsset, matchKind: PublicSimilar
     symbol: asset.symbol,
     name: asset.name,
     matchKind,
-    canonicalPath: `/asset/${asset.slug}`
+    canonicalPath: `/asset/${asset.slug}`,
+    logoUrl: asset.logoUrl
   };
 }
 
@@ -125,6 +140,11 @@ function buildAddressMatch(address: string, asset: PublicCanonicalAsset | null):
     symbol: asset?.symbol ?? null,
     name: asset?.name ?? null,
     address: normalizedAddress,
+    logoUrl:
+      asset?.logoUrl ??
+      resolveTokenMediaUrl({
+        address: normalizedAddress
+      }),
     matchKind: "address"
   };
 }

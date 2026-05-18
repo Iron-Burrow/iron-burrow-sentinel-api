@@ -1,5 +1,5 @@
 import type { PublicCanonicalAsset, PublicMantleAssetPayload } from "../src/public-catalog.js";
-import { emptyState, escapeHtml, metadataPanel, renderLayout, statusPill } from "./layout.js";
+import { emptyState, escapeHtml, metadataPanel, renderLayout, renderTokenIcon, statusPill } from "./layout.js";
 
 export function renderMantleAssetPage(input: { asset: PublicCanonicalAsset | null; payload: PublicMantleAssetPayload }): string {
   const { payload } = input;
@@ -36,8 +36,18 @@ export function renderMantleAssetPage(input: { asset: PublicCanonicalAsset | nul
     active: "asset",
     body: `<section class="hero asset-hero">
       <div>
-        <p class="eyebrow">Mantle asset</p>
-        <h1>${escapeHtml(summary.symbol)}</h1>
+        <div class="asset-title">
+          ${renderTokenIcon({
+            logoUrl: payload.logoUrl,
+            symbol: summary.symbol,
+            name: summary.name,
+            className: "token-logo"
+          })}
+          <div>
+            <p class="eyebrow">Mantle asset</p>
+            <h1>${escapeHtml(summary.symbol)}</h1>
+          </div>
+        </div>
         <p class="lead">${escapeHtml(summary.name)} on Mantle, rendered from Sentinel's public demo provider with source-aware partial coverage.</p>
         <div class="tag-row">
           <span class="tag mono">${escapeHtml(payload.address)}</span>

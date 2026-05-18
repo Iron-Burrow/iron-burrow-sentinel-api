@@ -1,5 +1,5 @@
 import type { PublicCanonicalAsset, PublicSimilarAsset } from "../src/public-catalog.js";
-import { emptyState, escapeHtml, renderLayout, statusPill } from "./layout.js";
+import { emptyState, escapeHtml, renderLayout, renderTokenIcon, statusPill } from "./layout.js";
 
 function formatMatchKind(matchKind: PublicSimilarAsset["matchKind"]): string {
   switch (matchKind) {
@@ -47,9 +47,19 @@ export function renderCanonicalAssetPage(asset: PublicCanonicalAsset, similarAss
               .map(
                 (representation) => `<tr>
                   <td>
-                    <strong>${escapeHtml(representation.symbol)}</strong>
-                    <div class="subtle">${escapeHtml(representation.name)}</div>
-                    <div class="mono subtle">${escapeHtml(representation.address)}</div>
+                    <div class="asset-row">
+                      ${renderTokenIcon({
+                        logoUrl: representation.logoUrl,
+                        symbol: representation.symbol,
+                        name: representation.name,
+                        className: "token-row-icon"
+                      })}
+                      <div>
+                        <strong>${escapeHtml(representation.symbol)}</strong>
+                        <div class="subtle">${escapeHtml(representation.name)}</div>
+                        <div class="mono subtle">${escapeHtml(representation.address)}</div>
+                      </div>
+                    </div>
                   </td>
                   <td>${escapeHtml(representation.chain)}</td>
                   <td>${statusPill(representation.indexedStatus === "partial" ? "Partial demo coverage" : "Demo signal", "partial")}</td>
@@ -71,8 +81,18 @@ export function renderCanonicalAssetPage(asset: PublicCanonicalAsset, similarAss
               .map(
                 (similarAsset) => `<tr>
                   <td>
-                    <strong>${escapeHtml(similarAsset.symbol)}</strong>
-                    <div class="subtle">${escapeHtml(similarAsset.name)}</div>
+                    <div class="asset-row">
+                      ${renderTokenIcon({
+                        logoUrl: similarAsset.logoUrl,
+                        symbol: similarAsset.symbol,
+                        name: similarAsset.name,
+                        className: "token-row-icon"
+                      })}
+                      <div>
+                        <strong>${escapeHtml(similarAsset.symbol)}</strong>
+                        <div class="subtle">${escapeHtml(similarAsset.name)}</div>
+                      </div>
+                    </div>
                   </td>
                   <td>${statusPill(formatMatchKind(similarAsset.matchKind), "partial")}</td>
                   <td><a class="button secondary" href="${escapeHtml(similarAsset.canonicalPath)}">Open canonical asset</a></td>
@@ -88,9 +108,19 @@ export function renderCanonicalAssetPage(asset: PublicCanonicalAsset, similarAss
     active: "asset",
     body: `<section class="hero asset-hero">
       <div>
-        <p class="eyebrow">Canonical asset</p>
-        <h1>${escapeHtml(asset.symbol)}</h1>
-        <p class="lead"><strong>${escapeHtml(asset.name)}</strong></p>
+        <div class="asset-title">
+          ${renderTokenIcon({
+            logoUrl: asset.logoUrl,
+            symbol: asset.symbol,
+            name: asset.name,
+            className: "token-logo"
+          })}
+          <div>
+            <p class="eyebrow">Canonical asset</p>
+            <h1>${escapeHtml(asset.symbol)}</h1>
+            <p class="lead"><strong>${escapeHtml(asset.name)}</strong></p>
+          </div>
+        </div>
         <p class="lead">${escapeHtml(asset.description)}</p>
         <div class="tag-row">
           <span class="tag">${escapeHtml(formatAssetKind(asset.assetKind))}</span>
