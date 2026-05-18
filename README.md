@@ -192,15 +192,15 @@ For normal development, Docker and Docker Compose handle the runtime. Host-local
 
 Copy `.env.example` to `.env` for development. See `.env.production.example` for production guidance.
 
-| Variable | Required | Default | Description |
-|---|---|---|---|
-| `DATABASE_URL` | Yes (prod) | `postgresql://postgres:postgres@localhost:5432/iron_burrow_sentinel` | PostgreSQL connection string |
-| `API_KEY_HASH_SECRET` | **Yes (prod)** | `dev-…-change-me` | HMAC secret for hashing stored API keys. Use ≥32 random bytes in production. |
-| `SESSION_SECRET` | **Yes (prod)** | `dev-…-change-me` | Session signing secret. Use ≥32 random bytes in production. |
-| `RATE_LIMIT_WINDOW_SECONDS` | No | `60` | Rolling window length for per-key rate limiting |
-| `RATE_LIMIT_REQUESTS` | No | `60` | Maximum requests per key per window |
-| `RATE_LIMIT_COST_UNITS` | No | `600` | Total cost-unit budget per key per window |
-| `PORT` | No | `3000` | HTTP listen port |
+| Variable | Required | Description |
+|---|---|---|
+| `DATABASE_URL` | Yes (prod) | PostgreSQL connection string |
+| `API_KEY_HASH_SECRET` | **Yes (prod)** | HMAC secret for hashing stored API keys. Use ≥32 random bytes in production. |
+| `SESSION_SECRET` | **Yes (prod)** | Session signing secret. Use ≥32 random bytes in production. |
+| `RATE_LIMIT_WINDOW_SECONDS` | No | Rolling window length for per-key rate limiting |
+| `RATE_LIMIT_REQUESTS` | No | Maximum requests per key per window |
+| `RATE_LIMIT_COST_UNITS` | No | Total cost-unit budget per key per window |
+| `PORT` | No | HTTP listen port |
 
 > **Never commit real values for `API_KEY_HASH_SECRET` or `SESSION_SECRET`.** Rotate immediately if leaked.
 
