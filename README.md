@@ -6,7 +6,23 @@
 [![Node >=20](https://img.shields.io/badge/node-%3E%3D20-brightgreen)](package.json)
 [![pnpm 10](https://img.shields.io/badge/pnpm-10-blue)](package.json)
 
-**Iron Burrow Sentinel** is a hackathon-focused public API and server-rendered UI for source-aware Mantle intelligence. It is the public-facing table for agents and builders; private indexers, nodes, RPC details, and future internal gateways stay behind the burrow.
+**Iron Burrow Sentinel** is a hackathon-focused public API and server-rendered UI for source-aware Mantle intelligence. It's an agent-facing intelligence layer that turns raw on-chain activity and price data into structured, evidence-backed signals that autonomous agents, bots, and human operators can use before making decisions.
+
+Instead of only exposing indexed events, Sentinel answers questions such as:
+
+- What changed in asset liquidity?
+- Is holder concentration increasing?
+- Which wallets accumulated before volatility?
+- Where is the current price relative to its 7-day range?
+- What changed since a specific block?
+
+Each answer includes metrics, evidence, confidence, and limitations.
+
+For this hackathon, Sentinel focuses on Mantle assets such as `mETH`, `USDY`, and `MNT`, with the goal of helping AI agents understand market and protocol activity without relying on vague or hallucinated context.
+
+**Iron Burrow Sentinel gives agents eyes, memory, and evidence on-chain.**
+
+The architecture maintains a clean public-private boundary: Sentinel is the public-facing table for agents and builders, while private indexers, nodes, RPC details, and future internal gateways stay behind the burrow.
 
 ## Architecture
 
