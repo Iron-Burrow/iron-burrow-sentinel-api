@@ -2,7 +2,7 @@
 
 All protected routes accept `Authorization: Bearer <api-key>` or `X-API-Key: <api-key>`.
 
-Preferred public contract routes use stable envelopes:
+Preferred public contract routes use stable envelopes unless a route is explicitly listed as a legacy compatibility alias or bootstrap endpoint:
 
 ```json
 { "data": {}, "meta": { "source": "sentinel", "partial": false, "stale": false } }
@@ -14,11 +14,14 @@ Preferred public contract routes use stable envelopes:
 
 ## Public
 
-- `GET /health`
 - `GET /v1/status`
 - `GET /v1/chains`
 - `GET /v1/networks`
 - `GET /v1/capabilities`
+
+Bootstrap endpoints use compact `ok` payloads:
+
+- `GET /health`
 - `POST /v1/api-keys`
 
 ## Scan And Tokens
@@ -80,6 +83,7 @@ These routes remain available for the current demo UI and older clients:
 
 - `GET /v1/sources`
 - `GET /v1/api-keys`
+- `DELETE /v1/api-keys/:id`
 - `GET /v1/mantle/assets/:address/summary`
 - `GET /v1/mantle/assets/:address/holders`
 - `GET /v1/mantle/assets/:address/concentration`
