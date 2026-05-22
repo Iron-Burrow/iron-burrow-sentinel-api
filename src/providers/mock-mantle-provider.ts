@@ -34,30 +34,30 @@ const holdersMap = new Map<string, MantleHolder[]>([
   [
     "0x4444444444444444444444444444444444444444",
     [
-      { rank: 1, address: "0xaabb001122334455667788aabb001122334455aa", balance: "4200.000000", balance_usd: "13,356,000.00", percent_supply: "22.10", label: "mETH Protocol Reserve", change_percent_7d: "+4.3" },
-      { rank: 2, address: "0xcc11223344556677889900aabbccddeeff001122", balance: "1850.000000", balance_usd: "5,883,000.00", percent_supply: "9.74", label: "Bybit Hot Wallet", change_percent_7d: "+12.8" },
-      { rank: 3, address: "0xdd2233445566778899aabbcc00112233dd445566", balance: "980.000000", balance_usd: "3,116,400.00", percent_supply: "5.15", label: null, change_percent_7d: "+6.2" },
-      { rank: 4, address: "0xee33445566778899aabbccddee001122ff334455", balance: "620.000000", balance_usd: "1,971,600.00", percent_supply: "3.26", label: "Mantle Treasury", change_percent_7d: "-1.1" },
-      { rank: 5, address: "0xff445566778899aabbccddeeff00112233445566", balance: "410.000000", balance_usd: "1,303,800.00", percent_supply: "2.16", label: null, change_percent_7d: "+8.9" }
+      { rank: 1, address: "0xaabb001122334455667788aabb001122334455aa", balance: "4200.000000", balance_usd: "13356000.00", percent_supply: "22.10", label: "mETH Protocol Reserve", change_percent_7d: "+4.3" },
+      { rank: 2, address: "0xcc11223344556677889900aabbccddeeff001122", balance: "1850.000000", balance_usd: "5883000.00", percent_supply: "9.74", label: "Bybit Hot Wallet", change_percent_7d: "+12.8" },
+      { rank: 3, address: "0xdd2233445566778899aabbcc00112233dd445566", balance: "980.000000", balance_usd: "3116400.00", percent_supply: "5.15", label: null, change_percent_7d: "+6.2" },
+      { rank: 4, address: "0xee33445566778899aabbccddee001122ff334455", balance: "620.000000", balance_usd: "1971600.00", percent_supply: "3.26", label: "Mantle Treasury", change_percent_7d: "-1.1" },
+      { rank: 5, address: "0xff445566778899aabbccddeeff00112233445566", balance: "410.000000", balance_usd: "1303800.00", percent_supply: "2.16", label: null, change_percent_7d: "+8.9" }
     ]
   ],
   [
     "0x5555555555555555555555555555555555555555",
     [
-      { rank: 1, address: "0xaa1122334455667788990011aabb223344556677", balance: "12400000.000000", balance_usd: "12,896,000.00", percent_supply: "31.20", label: "Ondo Finance Vault", change_percent_7d: "+0.2" },
-      { rank: 2, address: "0xbb2233445566778899001122bbcc334455667788", balance: "4800000.000000", balance_usd: "4,992,000.00", percent_supply: "12.07", label: "Stargate Pool", change_percent_7d: "+1.5" },
-      { rank: 3, address: "0xcc3344556677889900112233ccdd445566778899", balance: "2100000.000000", balance_usd: "2,184,000.00", percent_supply: "5.28", label: null, change_percent_7d: "+3.1" },
-      { rank: 4, address: "0xdd4455667788990011223344ddee556677889900", balance: "890000.000000", balance_usd: "925,600.00", percent_supply: "2.24", label: null, change_percent_7d: "-0.3" }
+      { rank: 1, address: "0xaa1122334455667788990011aabb223344556677", balance: "12400000.000000", balance_usd: "12896000.00", percent_supply: "31.20", label: "Ondo Finance Vault", change_percent_7d: "+0.2" },
+      { rank: 2, address: "0xbb2233445566778899001122bbcc334455667788", balance: "4800000.000000", balance_usd: "4992000.00", percent_supply: "12.07", label: "Stargate Pool", change_percent_7d: "+1.5" },
+      { rank: 3, address: "0xcc3344556677889900112233ccdd445566778899", balance: "2100000.000000", balance_usd: "2184000.00", percent_supply: "5.28", label: null, change_percent_7d: "+3.1" },
+      { rank: 4, address: "0xdd4455667788990011223344ddee556677889900", balance: "890000.000000", balance_usd: "925600.00", percent_supply: "2.24", label: null, change_percent_7d: "-0.3" }
     ]
   ],
   [
     "0x6666666666666666666666666666666666666666",
     [
-      { rank: 1, address: "0xee5566778899001122334455eeff667788990011", balance: "248000000.000000", balance_usd: "203,360,000.00", percent_supply: "24.80", label: "Mantle Treasury", change_percent_7d: "+0.0" },
-      { rank: 2, address: "0xff6677889900112233445566ff00778899001122", balance: "89000000.000000", balance_usd: "72,980,000.00", percent_supply: "8.90", label: "Binance Hot Wallet", change_percent_7d: "+5.4" },
-      { rank: 3, address: "0xaa7788990011223344556677aa11889900112233", balance: "42000000.000000", balance_usd: "34,440,000.00", percent_supply: "4.20", label: "OKX Deposit", change_percent_7d: "+2.8" },
-      { rank: 4, address: "0xbb8899001122334455667788bb22990011223344", balance: "31000000.000000", balance_usd: "25,420,000.00", percent_supply: "3.10", label: null, change_percent_7d: "+9.7" },
-      { rank: 5, address: "0xcc9900112233445566778899cc33001122334455", balance: "18500000.000000", balance_usd: "15,170,000.00", percent_supply: "1.85", label: null, change_percent_7d: "-2.1" }
+      { rank: 1, address: "0xee5566778899001122334455eeff667788990011", balance: "248000000.000000", balance_usd: "203360000.00", percent_supply: "24.80", label: "Mantle Treasury", change_percent_7d: "+0.0" },
+      { rank: 2, address: "0xff6677889900112233445566ff00778899001122", balance: "89000000.000000", balance_usd: "72980000.00", percent_supply: "8.90", label: "Binance Hot Wallet", change_percent_7d: "+5.4" },
+      { rank: 3, address: "0xaa7788990011223344556677aa11889900112233", balance: "42000000.000000", balance_usd: "34440000.00", percent_supply: "4.20", label: "OKX Deposit", change_percent_7d: "+2.8" },
+      { rank: 4, address: "0xbb8899001122334455667788bb22990011223344", balance: "31000000.000000", balance_usd: "25420000.00", percent_supply: "3.10", label: null, change_percent_7d: "+9.7" },
+      { rank: 5, address: "0xcc9900112233445566778899cc33001122334455", balance: "18500000.000000", balance_usd: "15170000.00", percent_supply: "1.85", label: null, change_percent_7d: "-2.1" }
     ]
   ]
 ]);
