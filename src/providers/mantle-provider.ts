@@ -14,6 +14,8 @@ export interface MantleAssetSummary {
   name: string;
   decimals: number;
   price_usd: string | null;
+  price_7d_high: string | null;
+  price_7d_low: string | null;
   liquidity_usd: string;
   holder_count: number;
   top_holder_percent: string;
@@ -27,6 +29,7 @@ export interface MantleHolder {
   balance_usd: string | null;
   percent_supply: string;
   label: string | null;
+  change_percent_7d: string | null;
 }
 
 export interface MantleHoldersResponse {
