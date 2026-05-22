@@ -452,6 +452,61 @@ test("protected Sentinel routes accept generated API keys and return partial met
   assert.equal(summaryPayload.data.metadata.is_partial, true);
 });
 
+test("preferred v1 map exposes contract routes through stable envelopes", async () => {
+  const app = createApp({ env: testEnv() });
+  const apiKey = await createKey(app);
+  const headers = { authorization: `Bearer ${apiKey}` };
+  const address = "0x1111111111111111111111111111111111111111";
+
+  const chains = await app.request("/v1/chains");
+  const capabilities = await app.request("/v1/capabilities");
+  const search = await app.request("/v1/scan/search?q=mBURROW", { headers });
+  const token = await app.request(`/v1/tokens/mantle/mainnet/${address}`, { headers });
+  const holders = await app.request(`/v1/tokens/mantle/mainnet/${address}/holders?limit=2`, { headers });
+  const transferStub = await app.request(`/v1/tokens/mantle/mainnet/${address}/transfers`, { headers });
+  const transactionStub = await app.request(
+    "/v1/transactions/mantle/mainnet/0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    { headers }
+  );
+  const infra = await app.request("/v1/infra/status", { headers });
+  const near = await app.request("/v1/near/validators", { headers });
+  const keys = await app.request("/v1/me/api-keys", { headers });
+  const limits = await app.request("/v1/me/rate-limits", { headers });
+  const signals = await app.request("/v1/signals", { headers });
+  const query = await app.request("/v1/sentinel/query", {
+    method: "POST",
+    headers: { ...headers, "content-type": "application/json" },
+    body: JSON.stringify({ query: "What changed in Mantle liquidity?" })
+  });
+
+  assert.equal(chains.status, 200);
+  assert.equal(((await chains.json()) as { data: Array<{ chain: string }> }).data[0]?.chain, "mantle");
+  assert.equal(capabilities.status, 200);
+  assert.equal(((await capabilities.json()) as { data: { token_holders: boolean } }).data.token_holders, true);
+  assert.equal(search.status, 200);
+  assert.equal(((await search.json()) as { data: { matches: unknown[] }; meta: { partial: boolean } }).meta.partial, true);
+  assert.equal(token.status, 200);
+  assert.equal(((await token.json()) as { data: { token_address: string }; meta: { chain: string } }).meta.chain, "mantle");
+  assert.equal(holders.status, 200);
+  assert.equal(((await holders.json()) as { data: { holders: unknown[] } }).data.holders.length, 2);
+  assert.equal(transferStub.status, 501);
+  assert.equal(((await transferStub.json()) as { error: { code: string } }).error.code, "NOT_INDEXED_YET");
+  assert.equal(transactionStub.status, 501);
+  assert.equal(((await transactionStub.json()) as { error: { code: string } }).error.code, "NOT_INDEXED_YET");
+  assert.equal(infra.status, 200);
+  assert.equal(((await infra.json()) as { data: { raw_rpc_public: boolean } }).data.raw_rpc_public, false);
+  assert.equal(near.status, 501);
+  assert.equal(((await near.json()) as { error: { code: string } }).error.code, "NOT_CONNECTED_YET");
+  assert.equal(keys.status, 200);
+  assert.ok(((await keys.json()) as { data: { keys: unknown[] } }).data.keys.length > 0);
+  assert.equal(limits.status, 200);
+  assert.equal(((await limits.json()) as { data: { request_limit: number } }).data.request_limit, 60);
+  assert.equal(signals.status, 200);
+  assert.ok(((await signals.json()) as { data: unknown[] }).data.length > 0);
+  assert.equal(query.status, 200);
+  assert.match(((await query.json()) as { data: { answer: string } }).data.answer, /Sentinel demo data/u);
+});
+
 test("price routes require API keys", async () => {
   const app = createApp({ env: testEnv() });
 
@@ -471,8 +526,7 @@ test("price routes return disabled and misconfigured responses", async () => {
   const disabledPayload = (await disabledResponse.json()) as { code: string; backend: string };
 
   assert.equal(disabledResponse.status, 503);
-  assert.equal(disabledPayload.code, "PRICE_DISABLED");
-  assert.equal(disabledPayload.backend, "disabled");
+  assert.equal((disabledPayload as unknown as { error: { code: string } }).error.code, "PRICE_BACKEND_UNAVAILABLE");
 
   const misconfiguredApp = createApp({
     env: testEnv({
@@ -488,7 +542,7 @@ test("price routes return disabled and misconfigured responses", async () => {
   const misconfiguredPayload = (await misconfiguredResponse.json()) as { code: string };
 
   assert.equal(misconfiguredResponse.status, 503);
-  assert.equal(misconfiguredPayload.code, "PRICE_QL_UNAVAILABLE");
+  assert.equal((misconfiguredPayload as unknown as { error: { code: string } }).error.code, "PRICE_BACKEND_UNAVAILABLE");
 });
 
 test("price routes forward to the private QL with auth and default series range", async () => {
@@ -543,25 +597,33 @@ test("price routes forward to the private QL with auth and default series range"
   try {
     const apiKey = await createKey(app);
     const headers = { "x-api-key": apiKey };
-    const latest = await app.request("/v1/prices/latest?symbol=BTC", { headers });
+    const assets = await app.request("/v1/prices/assets", { headers });
+    const latest = await app.request("/v1/prices/latest?asset=BTC&quote=USD", { headers });
     const defaultSeries = await app.request("/v1/prices/series?symbol=BTC", { headers });
     const explicitSeries = await app.request("/v1/prices/series?symbol=BTC&range=1d", { headers });
-    const history = await app.request("/v1/prices/history?symbol=BTC", { headers });
+    const history = await app.request("/v1/prices/history?asset=BTC&quote=USD", { headers });
+    const priceAt = await app.request("/v1/prices/at?asset=BTC&quote=USD&timestamp=2026-05-18T00:00:00.000Z", {
+      headers
+    });
 
+    assert.equal(assets.status, 200);
+    assert.ok(((await assets.json()) as { data: unknown[] }).data.length > 0);
     assert.equal(latest.status, 200);
     assert.equal(latest.headers.get("x-ratelimit-limit"), "60");
-    assert.equal(((await latest.json()) as { symbol: string }).symbol, "BTC");
+    assert.equal(((await latest.json()) as { data: { symbol: string } }).data.symbol, "BTC");
     assert.equal(defaultSeries.status, 200);
     assert.equal(((await defaultSeries.json()) as { range: string }).range, "7d");
     assert.equal(explicitSeries.status, 200);
     assert.equal(((await explicitSeries.json()) as { range: string }).range, "1d");
     assert.equal(history.status, 200);
-    assert.equal(((await history.json()) as { range: string }).range, "7d");
+    assert.equal(((await history.json()) as { data: { range: string } }).data.range, "7d");
+    assert.equal(priceAt.status, 501);
+    assert.equal(((await priceAt.json()) as { error: { code: string } }).error.code, "NOT_INDEXED_YET");
     assert.deepEqual(seenUrls, [
-      "http://prices.example.test/prices/latest?symbol=BTC",
+      "http://prices.example.test/prices/latest?asset=BTC&quote=USD&symbol=BTC",
       "http://prices.example.test/prices/series?symbol=BTC&range=7d",
       "http://prices.example.test/prices/series?symbol=BTC&range=1d",
-      "http://prices.example.test/prices/series?symbol=BTC&range=7d"
+      "http://prices.example.test/prices/series?asset=BTC&quote=USD&symbol=BTC&range=7d"
     ]);
   } finally {
     globalThis.fetch = originalFetch;
