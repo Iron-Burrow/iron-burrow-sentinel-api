@@ -651,6 +651,43 @@ test("price routes forward to the private QL with auth and default series range"
   }
 });
 
+test("price routes do not expose private backend payloads on errors", async () => {
+  const originalFetch = globalThis.fetch;
+
+  globalThis.fetch = async () =>
+    new Response(
+      JSON.stringify({
+        code: "PRIVATE_BACKEND_TRACE",
+        message: "internal detail that should not be public",
+        stack: "private stack trace"
+      }),
+      { status: 500, headers: { "content-type": "application/json" } }
+    );
+
+  const app = createApp({
+    env: testEnv({
+      PRICE_BACKEND: "service",
+      PRICE_QL_BASE_URL: "http://prices.example.test",
+      PRICE_QL_INTERNAL_TOKEN: "test-price-token"
+    })
+  });
+
+  try {
+    const apiKey = await createKey(app);
+    const response = await app.request("/v1/prices/latest?symbol=BTC", { headers: { "x-api-key": apiKey } });
+    const body = await response.text();
+    const payload = JSON.parse(body) as { error: { code: string; details: Record<string, unknown> } };
+
+    assert.equal(response.status, 502);
+    assert.equal(payload.error.code, "PRICE_BACKEND_UNAVAILABLE");
+    assert.deepEqual(payload.error.details, { backend_status: 500 });
+    assert.doesNotMatch(body, /PRIVATE_BACKEND_TRACE/u);
+    assert.doesNotMatch(body, /private stack trace/u);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test("API keys can be revoked", async () => {
   const app = createApp({ env: testEnv() });
   const apiKey = await createKey(app);

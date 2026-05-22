@@ -38,7 +38,7 @@ export async function getLatestPrice(
       status: safeStatus(result.status),
       code: "PRICE_BACKEND_UNAVAILABLE",
       message: "Sentinel could not read latest price data from the private price backend.",
-      details: { backend_status: result.status, backend_payload: result.payload },
+      details: { backend_status: result.status },
       meta: notIndexedMeta({ source: "sentinel-price-service" })
     };
   }
@@ -68,7 +68,7 @@ export async function getPriceHistory(
       status: safeStatus(result.status),
       code: "PRICE_BACKEND_UNAVAILABLE",
       message: "Sentinel could not read historical price data from the private price backend.",
-      details: { backend_status: result.status, backend_payload: result.payload },
+      details: { backend_status: result.status },
       meta: notIndexedMeta({ source: "sentinel-price-service" })
     };
   }
@@ -90,4 +90,3 @@ export function getPriceAt(): ServiceError {
     meta: notIndexedMeta({ source: "sentinel-price-service" })
   };
 }
-
