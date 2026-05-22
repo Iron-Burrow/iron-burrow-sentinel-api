@@ -449,6 +449,25 @@ test("protected Sentinel routes accept generated API keys and return partial met
     assert.equal(response.status, 200);
   }
 
+  const mePayload = (await me.json()) as {
+    user?: unknown;
+    data: { user: unknown; api_key: unknown };
+    meta: { source: string };
+  };
+  const usagePayload = (await usage.json()) as {
+    usage?: unknown;
+    keys?: unknown;
+    data: { user: unknown; usage: unknown; keys: unknown[] };
+    meta: { source: string };
+  };
+  assert.equal(mePayload.user, undefined);
+  assert.equal(typeof mePayload.data.user, "object");
+  assert.equal(mePayload.meta.source, "sentinel-account-service");
+  assert.equal(usagePayload.usage, undefined);
+  assert.equal(usagePayload.keys, undefined);
+  assert.equal(Array.isArray(usagePayload.data.keys), true);
+  assert.equal(usagePayload.meta.source, "sentinel-account-service");
+
   const summaryPayload = (await summary.json()) as { data: { metadata: { source: string; is_partial: boolean } } };
   assert.equal(summaryPayload.data.metadata.source, "sentinel-demo-provider");
   assert.equal(summaryPayload.data.metadata.is_partial, true);

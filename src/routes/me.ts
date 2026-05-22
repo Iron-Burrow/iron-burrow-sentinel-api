@@ -12,12 +12,7 @@ export async function meRoute(c: Context<AppBindings>): Promise<Response> {
   }
 
   const result = await getMe(auth);
-  return c.json({
-    ok: true,
-    ...result.data,
-    data: result.data,
-    meta: result.meta
-  });
+  return ok(c, result.data, result.meta);
 }
 
 export async function usageRoute(c: Context<AppBindings>): Promise<Response> {
@@ -29,12 +24,7 @@ export async function usageRoute(c: Context<AppBindings>): Promise<Response> {
 
   const result = await getMyUsage(c.get("services"), auth);
 
-  return c.json({
-    ok: true,
-    ...result.data,
-    data: result.data,
-    meta: result.meta
-  });
+  return ok(c, result.data, result.meta);
 }
 
 export async function meApiKeysRoute(c: Context<AppBindings>): Promise<Response> {
