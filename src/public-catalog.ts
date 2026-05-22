@@ -1,4 +1,4 @@
-import type { MantleAssetSummary, MantleConcentrationResponse, MantleHoldersResponse } from "./providers/mantle-provider.js";
+import type { LiquidityDeltaSignal, MantleAssetSummary, MantleConcentrationResponse, MantleHoldersResponse } from "./providers/mantle-provider.js";
 
 export type PublicAssetChain = "mantle";
 export type PublicAssetIndexedStatus = "partial" | "demo";
@@ -75,6 +75,7 @@ export interface PublicMantleAssetPayload {
   concentration: MantleConcentrationResponse;
   catalogAsset: PublicCanonicalAsset | null;
   logoUrl: string | null;
+  liquiditySignal: LiquidityDeltaSignal | null;
   publicBoundary: {
     exposesPrivateRpc: false;
     exposesPrivateIndexers: false;

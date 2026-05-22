@@ -1,63 +1,48 @@
-import type { MantleAssetSummary, MantleConcentrationResponse, LiquidityDeltaResponse } from "../src/providers/mantle-provider.js";
-import { escapeHtml, metadataPanel, renderLayout } from "./layout.js";
+import type { MantleAssetSummary } from "../src/providers/mantle-provider.js";
+import { escapeHtml, renderLayout } from "./layout.js";
 
 export function renderMantleDemoPage(input: {
-  summary: MantleAssetSummary;
-  concentration: MantleConcentrationResponse;
-  liquidity: LiquidityDeltaResponse;
+  assets: MantleAssetSummary[];
 }): string {
-  const { summary, concentration, liquidity } = input;
+  const { assets } = input;
+
+  const assetTags = assets
+    .map(
+      (a) =>
+        `<a class="bs-asset-tag" href="/mantle/asset/${escapeHtml(a.address)}">
+          <span class="bs-asset-tag-icon">${escapeHtml(a.symbol.slice(0, 2))}</span>
+          <span>${escapeHtml(a.symbol)}</span>
+        </a>`
+    )
+    .join("");
+
+  const categoryTags = ["Address", "Token", "Holder", "Liquidity", "Concentration", "Block"]
+    .map((t) => `<span class="bs-cat-tag">${t}</span>`)
+    .join("");
 
   return renderLayout({
-    title: "Mantle Demo",
+    title: "Mantle Explorer",
     active: "mantle",
-    body: `<section class="page-heading">
-      <p class="eyebrow">Mantle demo</p>
-      <h1>Source-aware intelligence payloads</h1>
-      <p class="lead">These are mock responses shaped like the public Sentinel API. The data is partial by design.</p>
+    body: `<section class="bs-hero">
+      <h1 class="bs-title">Mantle intelligence<br/><span class="bs-title-accent">Expand your exploration</span></h1>
+      <div class="bs-hero-actions">
+        <a class="bs-action-btn primary" href="#search">Search on chain</a>
+        <a class="bs-action-btn" href="/docs">Explore API</a>
+      </div>
+      <form class="bs-search" action="/search" method="get" id="search">
+        <span class="bs-search-icon">&#x1F50D;</span>
+        <input name="q" placeholder="Search by address / token / symbol..." aria-label="Search Mantle assets" autocomplete="off" />
+      </form>
+      <div class="bs-cat-tags">
+        <span class="bs-cat-label">Try searching by:</span>
+        ${categoryTags}
+      </div>
     </section>
 
-    <section class="grid two">
-      <article class="panel">
-        <h2>${escapeHtml(summary.symbol)} summary</h2>
-        <dl class="meta-grid">
-          <div><dt>Liquidity</dt><dd>$${escapeHtml(summary.liquidity_usd)}</dd></div>
-          <div><dt>Holders</dt><dd>${summary.holder_count.toLocaleString("en-US")}</dd></div>
-          <div><dt>Top holder</dt><dd>${escapeHtml(summary.top_holder_percent)}%</dd></div>
-          <div><dt>Price</dt><dd>$${escapeHtml(summary.price_usd ?? "unavailable")}</dd></div>
-        </dl>
-      </article>
-      <article class="panel">
-        <h2>Concentration</h2>
-        <dl class="meta-grid">
-          <div><dt>Top 1</dt><dd>${escapeHtml(concentration.metrics.top_1_percent)}%</dd></div>
-          <div><dt>Top 5</dt><dd>${escapeHtml(concentration.metrics.top_5_percent)}%</dd></div>
-          <div><dt>Top 10</dt><dd>${escapeHtml(concentration.metrics.top_10_percent)}%</dd></div>
-          <div><dt>Gini estimate</dt><dd>${escapeHtml(concentration.metrics.gini_estimate)}</dd></div>
-        </dl>
-      </article>
-    </section>
-
-    <section class="panel table-panel">
-      <h2>Liquidity delta signals</h2>
-      <table>
-        <thead><tr><th>Asset</th><th>Window</th><th>Delta USD</th><th>Signal</th><th>Confidence</th></tr></thead>
-        <tbody>
-          ${liquidity.signals
-            .map(
-              (signal) => `<tr>
-                <td>${escapeHtml(signal.symbol)}</td>
-                <td>${escapeHtml(signal.window)}</td>
-                <td>${escapeHtml(signal.liquidity_delta_usd)}</td>
-                <td>${escapeHtml(signal.signal)}</td>
-                <td>${escapeHtml(signal.confidence)}</td>
-              </tr>`
-            )
-            .join("")}
-        </tbody>
-      </table>
-    </section>
-
-    ${metadataPanel(summary.metadata)}`
+    <section class="bs-featured">
+      <h2 class="bs-section-title">Featured assets</h2>
+      <p class="bs-section-sub">Select a token to investigate intelligence signals</p>
+      <div class="bs-asset-tags">${assetTags}</div>
+    </section>`
   });
 }

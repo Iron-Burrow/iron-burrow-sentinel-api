@@ -71,14 +71,14 @@ export function statusPageRoute(c: Context<AppBindings>): Response {
 
 export async function mantleDemoPageRoute(c: Context<AppBindings>): Promise<Response> {
   const provider = c.get("services").mantleProvider;
-  const address = "0x1111111111111111111111111111111111111111";
-  const [summary, concentration, liquidity] = await Promise.all([
-    provider.getAssetSummary(address),
-    provider.getAssetConcentration(address),
-    provider.getLiquidityDelta()
-  ]);
+  const featured = [
+    "0x4444444444444444444444444444444444444444",
+    "0x5555555555555555555555555555555555555555",
+    "0x6666666666666666666666666666666666666666"
+  ];
+  const assets = await Promise.all(featured.map((address) => provider.getAssetSummary(address)));
 
-  return c.html(renderMantleDemoPage({ summary, concentration, liquidity }));
+  return c.html(renderMantleDemoPage({ assets }));
 }
 
 export async function searchPageRoute(c: Context<AppBindings>): Promise<Response> {
@@ -199,6 +199,8 @@ async function buildPublicMantleAssetPayload(
     provider.getAssetConcentration(address),
     findPublicAssetByAddress(c.get("services").env.DATABASE_URL, address)
   ]);
+  const liquidityDelta = await provider.getLiquidityDelta();
+  const liquiditySignal = liquidityDelta.signals.find((signal) => signal.asset_address === address) ?? null;
 
   return {
     chain: "mantle",
@@ -214,6 +216,7 @@ async function buildPublicMantleAssetPayload(
         symbol: summary.symbol,
         name: summary.name
       }),
+    liquiditySignal,
     publicBoundary: {
       exposesPrivateRpc: false,
       exposesPrivateIndexers: false,
