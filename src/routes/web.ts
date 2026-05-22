@@ -197,7 +197,7 @@ async function buildPublicMantleAssetPayload(
     provider.getAssetSummary(address),
     provider.getAssetHolders(address, { limit: 10 }),
     provider.getAssetConcentration(address),
-    findPublicAssetByAddress(c.get("services").env.DATABASE_URL, address).catch(() => null)
+    findPublicAssetByAddress(c.get("services").env.DATABASE_URL, address)
   ]);
   const liquidityDelta = await provider.getLiquidityDelta();
   const liquiditySignal = liquidityDelta.signals.find((signal) => signal.asset_address === address) ?? null;
