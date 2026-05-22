@@ -84,10 +84,12 @@ test("public UI and status routes boot without private infrastructure details", 
   const status = await app.request("/v1/status");
   const sources = await app.request("/v1/sources");
   const statusPayload = (await status.json()) as {
-    public_boundary: {
-      exposes_private_rpc: boolean;
-      exposes_private_indexers: boolean;
-      exposes_internal_gateway: boolean;
+    data: {
+      public_boundary: {
+        exposes_private_rpc: boolean;
+        exposes_private_indexers: boolean;
+        exposes_internal_gateway: boolean;
+      };
     };
   };
 
@@ -109,9 +111,9 @@ test("public UI and status routes boot without private infrastructure details", 
   assert.equal(invalidMediaType.status, 404);
   assert.equal(status.status, 200);
   assert.equal(sources.status, 200);
-  assert.equal(statusPayload.public_boundary.exposes_private_rpc, false);
-  assert.equal(statusPayload.public_boundary.exposes_private_indexers, false);
-  assert.equal(statusPayload.public_boundary.exposes_internal_gateway, false);
+  assert.equal(statusPayload.data.public_boundary.exposes_private_rpc, false);
+  assert.equal(statusPayload.data.public_boundary.exposes_private_indexers, false);
+  assert.equal(statusPayload.data.public_boundary.exposes_internal_gateway, false);
 });
 
 test("status reports price backend mode without leaking private QL details", async () => {
@@ -125,11 +127,11 @@ test("status reports price backend mode without leaking private QL details", asy
 
   const response = await app.request("/v1/status");
   const body = await response.text();
-  const payload = JSON.parse(body) as { price_backend: { mode: string; configured: boolean } };
+  const payload = JSON.parse(body) as { data: { price_backend: { mode: string; configured: boolean } } };
 
   assert.equal(response.status, 200);
-  assert.equal(payload.price_backend.mode, "service");
-  assert.equal(payload.price_backend.configured, true);
+  assert.equal(payload.data.price_backend.mode, "service");
+  assert.equal(payload.data.price_backend.configured, true);
   assert.doesNotMatch(body, /iron-burrow-price-indexer/u);
   assert.doesNotMatch(body, /secret-price-token/u);
 });

@@ -1,16 +1,13 @@
 import type { Context } from "hono";
 
 import { getCapabilities, getChains, getNetworks, getStatus } from "../services/status-service.js";
+import { ok } from "../services/responses.js";
 import type { AppBindings } from "../types.js";
 
 export async function statusRoute(c: Context<AppBindings>): Promise<Response> {
   const result = await getStatus(c.get("services"));
 
-  return c.json({
-    ...result.data,
-    data: result.data,
-    meta: result.meta
-  });
+  return ok(c, result.data, result.meta);
 }
 
 export function healthRoute(c: Context<AppBindings>): Response {
