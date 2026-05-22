@@ -33,6 +33,22 @@ function priceRangeBar(current: string, low: string, high: string): string {
   </div>`;
 }
 
+function signedPercentText(value: string): string {
+  const numericValue = Number(value);
+  const unsignedValue = value.replace(/^\+/, "");
+  const sign = numericValue > 0 ? "+" : "";
+
+  return `${sign}${escapeHtml(unsignedValue)}%`;
+}
+
+function signedPercentClass(value: string): string {
+  const numericValue = Number(value);
+
+  if (numericValue > 0) return "text-positive";
+  if (numericValue < 0) return "text-negative";
+  return "";
+}
+
 export function renderMantleAssetPage(input: { asset: PublicCanonicalAsset | null; payload: PublicMantleAssetPayload }): string {
   const { payload } = input;
   const s = payload.summary;
@@ -55,7 +71,7 @@ export function renderMantleAssetPage(input: { asset: PublicCanonicalAsset | nul
         <td>${escapeHtml(h.percent_supply)}%</td>
         <td>${escapeHtml(h.balance)}${h.balance_usd ? `<div class="bs-usd">$${escapeHtml(h.balance_usd)}</div>` : ""}</td>
         <td>${h.change_percent_7d
-          ? `<span class="${Number(h.change_percent_7d) > 0 ? "text-positive" : Number(h.change_percent_7d) < 0 ? "text-negative" : ""}">${Number(h.change_percent_7d) > 0 ? "+" : ""}${escapeHtml(h.change_percent_7d)}%</span>`
+          ? `<span class="${signedPercentClass(h.change_percent_7d)}">${signedPercentText(h.change_percent_7d)}</span>`
           : `<span class="bs-muted">--</span>`}</td>
       </tr>`
     )
@@ -72,7 +88,7 @@ export function renderMantleAssetPage(input: { asset: PublicCanonicalAsset | nul
                 <span class="mono bs-addr">${escapeHtml(truncAddr(h.address))}</span>
               </div>
             </td>
-            <td class="text-positive">+${escapeHtml(h.change_percent_7d!)}%</td>
+            <td class="${signedPercentClass(h.change_percent_7d!)}">${signedPercentText(h.change_percent_7d!)}</td>
             <td>${escapeHtml(h.percent_supply)}% of supply</td>
             <td>${h.balance_usd ? `$${escapeHtml(h.balance_usd)}` : "--"}</td>
           </tr>`
