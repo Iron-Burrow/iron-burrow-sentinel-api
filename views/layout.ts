@@ -72,7 +72,7 @@ export function renderLayout(options: LayoutOptions): string {
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>${escapeHtml(title)}</title>
-    <link rel="stylesheet" href="/public/styles.css" />
+    <link rel="stylesheet" href="/public/styles.css?v=2" />
   </head>
   <body>
     <header class="topbar">

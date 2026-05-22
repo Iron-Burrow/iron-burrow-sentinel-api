@@ -71,14 +71,17 @@ export function statusPageRoute(c: Context<AppBindings>): Response {
 
 export async function mantleDemoPageRoute(c: Context<AppBindings>): Promise<Response> {
   const provider = c.get("services").mantleProvider;
-  const address = "0x1111111111111111111111111111111111111111";
-  const [summary, concentration, liquidity] = await Promise.all([
-    provider.getAssetSummary(address),
-    provider.getAssetConcentration(address),
+  const featured = [
+    "0x4444444444444444444444444444444444444444",
+    "0x5555555555555555555555555555555555555555",
+    "0x6666666666666666666666666666666666666666"
+  ];
+  const [assets, liquidity] = await Promise.all([
+    Promise.all(featured.map((address) => provider.getAssetSummary(address))),
     provider.getLiquidityDelta()
   ]);
 
-  return c.html(renderMantleDemoPage({ summary, concentration, liquidity }));
+  return c.html(renderMantleDemoPage({ assets, liquidity }));
 }
 
 export async function searchPageRoute(c: Context<AppBindings>): Promise<Response> {
