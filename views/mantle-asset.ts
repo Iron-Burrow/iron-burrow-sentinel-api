@@ -148,16 +148,16 @@ export function renderMantleAssetPage(input: { asset: PublicCanonicalAsset | nul
     </section>
 
     <section class="bs-tabs-section">
-      <div class="bs-tabs" role="tablist">
-        <button class="bs-tab active" data-tab="liquidity" role="tab" aria-selected="true">Liquidity</button>
-        <button class="bs-tab" data-tab="concentration" role="tab" aria-selected="false">Concentration</button>
-        <button class="bs-tab" data-tab="accumulation" role="tab" aria-selected="false">Accumulation</button>
-        <button class="bs-tab" data-tab="price-range" role="tab" aria-selected="false">Price range</button>
-        <button class="bs-tab" data-tab="block-changes" role="tab" aria-selected="false">Block changes</button>
+      <div class="bs-tabs" role="tablist" aria-label="Mantle asset intelligence">
+        <button id="mantle-tab-liquidity" class="bs-tab active" type="button" data-tab="liquidity" role="tab" aria-selected="true" aria-controls="mantle-panel-liquidity" tabindex="0">Liquidity</button>
+        <button id="mantle-tab-concentration" class="bs-tab" type="button" data-tab="concentration" role="tab" aria-selected="false" aria-controls="mantle-panel-concentration" tabindex="-1">Concentration</button>
+        <button id="mantle-tab-accumulation" class="bs-tab" type="button" data-tab="accumulation" role="tab" aria-selected="false" aria-controls="mantle-panel-accumulation" tabindex="-1">Accumulation</button>
+        <button id="mantle-tab-price-range" class="bs-tab" type="button" data-tab="price-range" role="tab" aria-selected="false" aria-controls="mantle-panel-price-range" tabindex="-1">Price range</button>
+        <button id="mantle-tab-block-changes" class="bs-tab" type="button" data-tab="block-changes" role="tab" aria-selected="false" aria-controls="mantle-panel-block-changes" tabindex="-1">Block changes</button>
       </div>
 
       <!-- Tab 1: What changed in asset liquidity? -->
-      <div class="bs-tab-panel active" data-panel="liquidity">
+      <div id="mantle-panel-liquidity" class="bs-tab-panel active" data-panel="liquidity" role="tabpanel" aria-labelledby="mantle-tab-liquidity" tabindex="0">
         <h3 class="bs-question">What changed in asset liquidity?</h3>
         ${signal
           ? `<div class="bs-intel-grid">
@@ -183,7 +183,7 @@ export function renderMantleAssetPage(input: { asset: PublicCanonicalAsset | nul
       </div>
 
       <!-- Tab 2: Is holder concentration increasing? -->
-      <div class="bs-tab-panel" data-panel="concentration">
+      <div id="mantle-panel-concentration" class="bs-tab-panel" data-panel="concentration" role="tabpanel" aria-labelledby="mantle-tab-concentration" tabindex="0" hidden>
         <h3 class="bs-question">Is holder concentration increasing?</h3>
         <div class="bs-intel-grid">
           <div class="bs-intel-card">
@@ -218,7 +218,7 @@ export function renderMantleAssetPage(input: { asset: PublicCanonicalAsset | nul
       </div>
 
       <!-- Tab 3: Which wallets accumulated before volatility? -->
-      <div class="bs-tab-panel" data-panel="accumulation">
+      <div id="mantle-panel-accumulation" class="bs-tab-panel" data-panel="accumulation" role="tabpanel" aria-labelledby="mantle-tab-accumulation" tabindex="0" hidden>
         <h3 class="bs-question">Which wallets accumulated before volatility?</h3>
         <p class="bs-narrative" style="margin-bottom:16px">Wallets that increased their position by &gt;3% in the past 7 days may signal accumulation ahead of price movement.</p>
         <div class="bs-table-wrap">
@@ -230,7 +230,7 @@ export function renderMantleAssetPage(input: { asset: PublicCanonicalAsset | nul
       </div>
 
       <!-- Tab 4: Price relative to 7-day range -->
-      <div class="bs-tab-panel" data-panel="price-range">
+      <div id="mantle-panel-price-range" class="bs-tab-panel" data-panel="price-range" role="tabpanel" aria-labelledby="mantle-tab-price-range" tabindex="0" hidden>
         <h3 class="bs-question">Where is the current price relative to its 7-day range?</h3>
         ${s.price_usd && s.price_7d_high && s.price_7d_low
           ? `<div class="bs-intel-grid">
@@ -253,7 +253,7 @@ export function renderMantleAssetPage(input: { asset: PublicCanonicalAsset | nul
       </div>
 
       <!-- Tab 5: What changed since a specific block? -->
-      <div class="bs-tab-panel" data-panel="block-changes">
+      <div id="mantle-panel-block-changes" class="bs-tab-panel" data-panel="block-changes" role="tabpanel" aria-labelledby="mantle-tab-block-changes" tabindex="0" hidden>
         <h3 class="bs-question">What changed since a specific block?</h3>
         <div class="bs-intel-grid">
           <div class="bs-intel-card">
@@ -293,15 +293,46 @@ export function renderMantleAssetPage(input: { asset: PublicCanonicalAsset | nul
           </div>`}
     </section>`,
     script: `<script>
-      document.querySelectorAll('.bs-tab').forEach(function(tab) {
+      var tabs = Array.prototype.slice.call(document.querySelectorAll('.bs-tab'));
+      var panels = Array.prototype.slice.call(document.querySelectorAll('.bs-tab-panel'));
+
+      function activateTab(tab, focusTab) {
+        var panelId = tab.getAttribute('aria-controls');
+
+        tabs.forEach(function(t) {
+          var isActive = t === tab;
+          t.classList.toggle('active', isActive);
+          t.setAttribute('aria-selected', isActive ? 'true' : 'false');
+          t.setAttribute('tabindex', isActive ? '0' : '-1');
+        });
+
+        panels.forEach(function(panel) {
+          var isActive = panel.id === panelId;
+          panel.classList.toggle('active', isActive);
+          panel.hidden = !isActive;
+        });
+
+        if (focusTab) {
+          tab.focus();
+        }
+      }
+
+      tabs.forEach(function(tab, index) {
         tab.addEventListener('click', function() {
-          var panel = this.getAttribute('data-tab');
-          document.querySelectorAll('.bs-tab').forEach(function(t) { t.classList.remove('active'); t.setAttribute('aria-selected','false'); });
-          document.querySelectorAll('.bs-tab-panel').forEach(function(p) { p.classList.remove('active'); });
-          this.classList.add('active');
-          this.setAttribute('aria-selected','true');
-          var target = document.querySelector('[data-panel="' + panel + '"]');
-          if (target) target.classList.add('active');
+          activateTab(tab, false);
+        });
+
+        tab.addEventListener('keydown', function(event) {
+          var nextIndex = index;
+
+          if (event.key === 'ArrowRight') nextIndex = (index + 1) % tabs.length;
+          else if (event.key === 'ArrowLeft') nextIndex = (index - 1 + tabs.length) % tabs.length;
+          else if (event.key === 'Home') nextIndex = 0;
+          else if (event.key === 'End') nextIndex = tabs.length - 1;
+          else return;
+
+          event.preventDefault();
+          activateTab(tabs[nextIndex], true);
         });
       });
     </script>`
