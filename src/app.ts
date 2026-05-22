@@ -8,6 +8,8 @@ import { usageLogMiddleware } from "./middleware/usage-log.js";
 import { MockMantleProvider } from "./providers/mock-mantle-provider.js";
 import { HttpPriceQlClient } from "./providers/price-ql-client.js";
 import { createApiKeyRoute, listApiKeysRoute, revokeApiKeyRoute } from "./routes/api-keys.js";
+import { priceAssetsRoute } from "./routes/catalog.js";
+import { infraRouteRoute, infraRoutesRoute, infraStatusRoute } from "./routes/infra.js";
 import {
   assetConcentrationRoute,
   assetHoldersRoute,
@@ -16,9 +18,24 @@ import {
   queryRoute,
   sourcesRoute
 } from "./routes/mantle.js";
-import { meRoute, usageRoute } from "./routes/me.js";
-import { latestPriceRoute, priceSeriesRoute } from "./routes/prices.js";
-import { healthRoute, statusRoute } from "./routes/status.js";
+import { meApiKeysRoute, meRateLimitsRoute, meRoute, usageRoute } from "./routes/me.js";
+import {
+  nearValidatorRoute,
+  nearValidatorsRoute,
+  nearValidatorSnapshotsRoute,
+  nearValidatorStatusRoute
+} from "./routes/near.js";
+import { latestPriceRoute, priceAtRoute, priceHistoryRoute, priceSeriesRoute } from "./routes/prices.js";
+import { scanSearchRoute } from "./routes/scan.js";
+import { sentinelQueryRoute, signalRoute, signalsRoute } from "./routes/signals.js";
+import { healthRoute, capabilitiesRoute, chainsRoute, networksRoute, statusRoute } from "./routes/status.js";
+import {
+  addressRoute,
+  tokenHoldersRoute,
+  tokenRoute,
+  tokenTransfersRoute,
+  transactionRoute
+} from "./routes/tokens.js";
 import {
   apiKeysPageRoute,
   canonicalAssetPageRoute,
@@ -89,20 +106,46 @@ export function createApp(options: CreateAppOptions = {}) {
 
   app.get("/health", healthRoute);
   app.get("/v1/status", statusRoute);
+  app.get("/v1/chains", chainsRoute);
+  app.get("/v1/networks", networksRoute);
+  app.get("/v1/capabilities", capabilitiesRoute);
   app.get("/v1/sources", sourcesRoute);
   app.post("/v1/api-keys", createApiKeyRoute);
 
+  app.get("/v1/scan/search", requireApiKey, rateLimitMiddleware, scanSearchRoute);
+  app.get("/v1/addresses/:chain/:network/:address", requireApiKey, rateLimitMiddleware, addressRoute);
+  app.get("/v1/tokens/:chain/:network/:token_address/transfers", requireApiKey, rateLimitMiddleware, tokenTransfersRoute);
+  app.get("/v1/tokens/:chain/:network/:token_address/holders", requireApiKey, rateLimitMiddleware, tokenHoldersRoute);
+  app.get("/v1/tokens/:chain/:network/:token_address", requireApiKey, rateLimitMiddleware, tokenRoute);
+  app.get("/v1/transactions/:chain/:network/:tx_hash", requireApiKey, rateLimitMiddleware, transactionRoute);
+
+  app.get("/v1/infra/status", requireApiKey, rateLimitMiddleware, infraStatusRoute);
+  app.get("/v1/infra/routes", requireApiKey, rateLimitMiddleware, infraRoutesRoute);
+  app.get("/v1/infra/routes/:route_id", requireApiKey, rateLimitMiddleware, infraRouteRoute);
+
+  app.get("/v1/near/validators", requireApiKey, rateLimitMiddleware, nearValidatorsRoute);
+  app.get("/v1/near/validators/:account_id/snapshots", requireApiKey, rateLimitMiddleware, nearValidatorSnapshotsRoute);
+  app.get("/v1/near/validators/:account_id/status", requireApiKey, rateLimitMiddleware, nearValidatorStatusRoute);
+  app.get("/v1/near/validators/:account_id", requireApiKey, rateLimitMiddleware, nearValidatorRoute);
+
   app.get("/v1/me", requireApiKey, rateLimitMiddleware, meRoute);
+  app.get("/v1/me/api-keys", requireApiKey, rateLimitMiddleware, meApiKeysRoute);
   app.get("/v1/me/usage", requireApiKey, rateLimitMiddleware, usageRoute);
+  app.get("/v1/me/rate-limits", requireApiKey, rateLimitMiddleware, meRateLimitsRoute);
   app.get("/v1/api-keys", requireApiKey, rateLimitMiddleware, listApiKeysRoute);
   app.delete("/v1/api-keys/:id", requireApiKey, rateLimitMiddleware, revokeApiKeyRoute);
   app.get("/v1/mantle/assets/:address/summary", requireApiKey, rateLimitMiddleware, assetSummaryRoute);
   app.get("/v1/mantle/assets/:address/holders", requireApiKey, rateLimitMiddleware, assetHoldersRoute);
   app.get("/v1/mantle/assets/:address/concentration", requireApiKey, rateLimitMiddleware, assetConcentrationRoute);
   app.get("/v1/mantle/signals/liquidity-delta", requireApiKey, rateLimitMiddleware, liquidityDeltaRoute);
+  app.get("/v1/prices/assets", requireApiKey, rateLimitMiddleware, priceAssetsRoute);
   app.get("/v1/prices/latest", requireApiKey, rateLimitMiddleware, latestPriceRoute);
+  app.get("/v1/prices/at", requireApiKey, rateLimitMiddleware, priceAtRoute);
   app.get("/v1/prices/series", requireApiKey, rateLimitMiddleware, priceSeriesRoute);
-  app.get("/v1/prices/history", requireApiKey, rateLimitMiddleware, priceSeriesRoute);
+  app.get("/v1/prices/history", requireApiKey, rateLimitMiddleware, priceHistoryRoute);
+  app.get("/v1/signals", requireApiKey, rateLimitMiddleware, signalsRoute);
+  app.get("/v1/signals/:signal_id", requireApiKey, rateLimitMiddleware, signalRoute);
+  app.post("/v1/sentinel/query", requireApiKey, rateLimitMiddleware, sentinelQueryRoute);
   app.post("/v1/query", requireApiKey, rateLimitMiddleware, queryRoute);
 
   app.notFound((c) =>
