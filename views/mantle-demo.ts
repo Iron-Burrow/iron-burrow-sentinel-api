@@ -1,9 +1,8 @@
-import type { MantleAssetSummary, LiquidityDeltaResponse } from "../src/providers/mantle-provider.js";
+import type { MantleAssetSummary } from "../src/providers/mantle-provider.js";
 import { escapeHtml, renderLayout } from "./layout.js";
 
 export function renderMantleDemoPage(input: {
   assets: MantleAssetSummary[];
-  liquidity: LiquidityDeltaResponse;
 }): string {
   const { assets } = input;
 
