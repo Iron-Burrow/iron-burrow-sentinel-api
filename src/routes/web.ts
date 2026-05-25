@@ -233,6 +233,35 @@ export async function mediaAssetRoute(c: Context<AppBindings>): Promise<Response
   return staticAssetRoute(c, mediaDir);
 }
 
+// Whitelisted browser-facing ES modules served straight from node_modules so
+// the page can `import` an installed dependency without a bundler. three.module.js
+// re-exports from ./three.core.js, so both files must be reachable under /vendor/.
+const threeBuildDir = fileURLToPath(new URL("../../node_modules/three/build/", import.meta.url));
+const vendorModules = new Map<string, string>([
+  ["three.module.js", resolve(threeBuildDir, "three.module.js")],
+  ["three.core.js", resolve(threeBuildDir, "three.core.js")]
+]);
+
+export async function vendorAssetRoute(c: Context<AppBindings>): Promise<Response> {
+  const filePath = vendorModules.get(c.req.param("file") ?? "");
+
+  if (!filePath) {
+    return c.notFound();
+  }
+
+  try {
+    const body = await readFile(filePath);
+    return new Response(body, {
+      headers: {
+        "content-type": "text/javascript; charset=utf-8",
+        "cache-control": "public, max-age=86400"
+      }
+    });
+  } catch {
+    return c.notFound();
+  }
+}
+
 async function staticAssetRoute(c: Context<AppBindings>, assetDir: string): Promise<Response> {
   const fileName = c.req.param("file") ?? "";
 

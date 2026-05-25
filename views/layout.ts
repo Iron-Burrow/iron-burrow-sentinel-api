@@ -4,6 +4,8 @@ export interface LayoutOptions {
   body: string;
   searchQuery?: string;
   script?: string;
+  bodyClass?: string;
+  bgCanvas?: boolean;
 }
 
 export function escapeHtml(value: string): string {
@@ -72,9 +74,10 @@ export function renderLayout(options: LayoutOptions): string {
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>${escapeHtml(title)}</title>
-    <link rel="stylesheet" href="/public/styles.css?v=2" />
+    <link rel="stylesheet" href="/public/styles.css?v=6" />
   </head>
-  <body>
+  <body${options.bodyClass ? ` class="${escapeHtml(options.bodyClass)}"` : ""}>
+    ${options.bgCanvas ? `<canvas id="bs-hero-canvas" class="bs-bg-canvas" aria-hidden="true"></canvas>` : ""}
     <header class="topbar">
       <a class="brand" href="/" aria-label="Iron Burrow Sentinel home">
         ${renderAppLogo()}

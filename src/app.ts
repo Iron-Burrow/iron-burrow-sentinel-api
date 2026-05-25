@@ -49,6 +49,7 @@ import {
   publicMantleAssetRoute,
   publicResolveRoute,
   publicAssetRoute,
+  vendorAssetRoute,
   searchPageRoute,
   statusPageRoute,
   usagePageRoute
@@ -99,6 +100,7 @@ export function createApp(options: CreateAppOptions = {}) {
   app.get("/status", statusPageRoute);
   app.get("/mantle-demo", mantleDemoPageRoute);
   app.get("/public/:file", publicAssetRoute);
+  app.get("/vendor/:file", vendorAssetRoute);
   app.get("/media/:file", mediaAssetRoute);
   app.get("/api/public/resolve", publicResolveRoute);
   app.get("/api/public/assets/:slug", publicCanonicalAssetRoute);
