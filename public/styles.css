@@ -564,6 +564,8 @@ th {
    ============================================ */
 
 .bs-hero {
+  position: relative;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -572,6 +574,76 @@ th {
   background: linear-gradient(160deg, #f0eef8 0%, #e8edf8 40%, var(--bg) 100%);
   border-radius: 16px;
   margin-bottom: 40px;
+}
+
+/* Dark hero — its background + particles now come from the page-level
+   gradient (body.theme-dark) and the fixed full-viewport canvas behind it. */
+.bs-hero-dark {
+  overflow: visible;
+  background: transparent;
+  border-radius: 0;
+  margin-bottom: 32px;
+  padding-top: 88px;
+  padding-bottom: 64px;
+}
+
+/* Full-viewport animated background canvas, behind all page content */
+.bs-bg-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.bs-hero-inner {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.bs-hero-dark .bs-title {
+  color: #f4f3ff;
+}
+
+.bs-hero-dark .bs-title-accent {
+  color: #a99bff;
+}
+
+.bs-hero-dark a.bs-action-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.22);
+  color: #f4f3ff;
+}
+
+.bs-hero-dark a.bs-action-btn.primary {
+  background: #5b4ec4;
+  border-color: #5b4ec4;
+  color: #fff;
+}
+
+.bs-hero-dark a.bs-action-btn:hover {
+  border-color: #a99bff;
+}
+
+.bs-hero-dark .bs-search {
+  border-color: transparent;
+  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.4);
+}
+
+.bs-hero-dark .bs-cat-label {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.bs-hero-dark .bs-cat-tag {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.18);
+  color: rgba(255, 255, 255, 0.82);
 }
 
 .bs-hero h1.bs-title {
@@ -741,6 +813,45 @@ a.bs-asset-tag:hover {
   color: #fff;
   font-weight: 900;
   font-size: 0.9rem;
+}
+
+/* ============================================
+   Page-wide dark theme (Mantle explorer)
+   ============================================ */
+
+body.theme-dark {
+  color: #e8e6f5;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(91, 78, 196, 0.42), transparent 55%),
+    linear-gradient(165deg, #0d0b22 0%, #161033 48%, #0a0916 100%);
+  background-attachment: fixed;
+}
+
+/* Lift page content above the fixed background canvas (z-index: 0) */
+.theme-dark main {
+  position: relative;
+  z-index: 1;
+}
+
+.theme-dark .bs-section-title {
+  color: #f4f3ff;
+}
+
+.theme-dark .bs-section-sub {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.theme-dark a.bs-asset-tag {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.14);
+  color: #f4f3ff;
+  box-shadow: none;
+}
+
+.theme-dark a.bs-asset-tag:hover {
+  border-color: #8b7fe8;
+  color: #fff;
+  box-shadow: 0 6px 24px rgba(91, 78, 196, 0.3);
 }
 
 /* ============================================

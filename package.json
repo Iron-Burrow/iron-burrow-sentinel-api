@@ -17,11 +17,13 @@
   "dependencies": {
     "@hono/node-server": "^1.19.0",
     "hono": "^4.9.7",
-    "pg": "^8.16.3"
+    "pg": "^8.16.3",
+    "three": "^0.184.0"
   },
   "devDependencies": {
     "@types/node": "^24.5.2",
     "@types/pg": "^8.15.5",
+    "@types/three": "^0.184.1",
     "tsx": "^4.20.5",
     "typescript": "^5.9.2"
   }
