@@ -6,6 +6,7 @@ export interface LayoutOptions {
   script?: string;
   bodyClass?: string;
   bgCanvas?: boolean;
+  currency?: "USD" | "MXN";
 }
 
 export function escapeHtml(value: string): string {
@@ -65,8 +66,45 @@ export function emptyState(title: string, detail: string, tone: "partial" | "una
   </div>`;
 }
 
+function renderCurrencySwitch(current: "USD" | "MXN"): string {
+  const opt = (value: "USD" | "MXN", label: string) =>
+    `<a class="currency-opt${current === value ? " active" : ""}" href="/currency/${value}" aria-current="${current === value ? "true" : "false"}">${label}</a>`;
+  return `<div class="currency-switch" role="group" aria-label="Display currency">
+    <style>
+      .currency-switch {
+        display: inline-flex;
+        border: 1px solid rgba(150, 135, 255, 0.35);
+        border-radius: 8px;
+        overflow: hidden;
+        font-size: 13px;
+        background: #ffffff;
+        margin-left: 12px;
+      }
+      .currency-switch .currency-opt {
+        padding: 6px 12px;
+        color: #4a3eb8;
+        text-decoration: none;
+        opacity: 0.7;
+        transition: background 0.15s, opacity 0.15s, color 0.15s;
+      }
+      .currency-switch .currency-opt:hover { opacity: 1; }
+      .currency-switch .currency-opt.active {
+        background: rgba(122, 107, 255, 0.25);
+        opacity: 1;
+        font-weight: 600;
+      }
+      .currency-switch .currency-opt + .currency-opt {
+        border-left: 1px solid rgba(150, 135, 255, 0.25);
+      }
+    </style>
+    ${opt("USD", "USD")}
+    ${opt("MXN", "MXN")}
+  </div>`;
+}
+
 export function renderLayout(options: LayoutOptions): string {
   const title = `${options.title} | Iron Burrow Sentinel`;
+  const currency = options.currency ?? "USD";
 
   return `<!doctype html>
 <html lang="en">
@@ -99,6 +137,7 @@ export function renderLayout(options: LayoutOptions): string {
         <input name="q" value="${escapeHtml(options.searchQuery ?? "")}" placeholder="Search mBURROW or 0x..." aria-label="Search Sentinel assets" />
         <button type="submit">Go</button>
       </form>
+      ${renderCurrencySwitch(currency)}
     </header>
     <main>
       ${options.body}

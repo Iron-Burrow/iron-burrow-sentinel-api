@@ -15,6 +15,8 @@ export interface SentinelEnv {
   PRICE_QL_INTERNAL_TOKEN: string;
   PRICE_SERVICE_TIMEOUT_MS: number;
   PRICE_SERIES_DEFAULT_RANGE: string;
+  GEMINI_API_KEY: string;
+  GEMINI_CHAT_MODEL: string;
 }
 
 function loadOptionalEnvFile(filePath = ".env"): void {
@@ -86,6 +88,8 @@ export function loadEnv(): SentinelEnv {
     PRICE_QL_BASE_URL: readString("PRICE_QL_BASE_URL"),
     PRICE_QL_INTERNAL_TOKEN: readString("PRICE_QL_INTERNAL_TOKEN"),
     PRICE_SERVICE_TIMEOUT_MS: readPositiveInteger("PRICE_SERVICE_TIMEOUT_MS", 3000),
-    PRICE_SERIES_DEFAULT_RANGE: readString("PRICE_SERIES_DEFAULT_RANGE", "7d") || "7d"
+    PRICE_SERIES_DEFAULT_RANGE: readString("PRICE_SERIES_DEFAULT_RANGE", "7d") || "7d",
+    GEMINI_API_KEY: readString("GEMINI_API_KEY"),
+    GEMINI_CHAT_MODEL: readString("GEMINI_CHAT_MODEL", "gemini-2.0-flash") || "gemini-2.0-flash"
   };
 }

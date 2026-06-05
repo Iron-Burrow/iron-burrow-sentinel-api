@@ -1,16 +1,17 @@
-import type { MantleAssetSummary, LiquidityDeltaResponse } from "../src/providers/mantle-provider.js";
-import { escapeHtml, renderLayout } from "./layout.js";
+import type { IronBurrowAsset } from "../src/clients/iron-burrow.js";
+import { emptyState, escapeHtml, renderLayout } from "./layout.js";
 
 export function renderMantleDemoPage(input: {
-  assets: MantleAssetSummary[];
-  liquidity: LiquidityDeltaResponse;
+  assets: IronBurrowAsset[];
+  error?: string | null;
+  currency?: "USD" | "MXN";
 }): string {
-  const { assets } = input;
+  const { assets, error, currency } = input;
 
   const assetTags = assets
     .map(
       (a) =>
-        `<a class="bs-asset-tag" href="/mantle/asset/${escapeHtml(a.address)}">
+        `<a class="bs-asset-tag" href="/mantle/asset/${escapeHtml(a.asset_id)}" title="${escapeHtml(a.name)}">
           <span class="bs-asset-tag-icon">${escapeHtml(a.symbol.slice(0, 2))}</span>
           <span>${escapeHtml(a.symbol)}</span>
         </a>`
@@ -21,11 +22,20 @@ export function renderMantleDemoPage(input: {
     .map((t) => `<span class="bs-cat-tag">${t}</span>`)
     .join("");
 
+  const errorBanner = error
+    ? `<div class="bs-search-error" role="alert" style="margin-top:12px;padding:10px 14px;border-radius:10px;background:rgba(255,90,90,0.12);color:#ffb1b1;font-size:14px">${escapeHtml(error)}</div>`
+    : "";
+
+  const featuredBody = assets.length === 0
+    ? emptyState("Featured assets unavailable.", "Could not reach the Iron Burrow asset catalog.", "unavailable")
+    : `<div class="bs-asset-tags">${assetTags}</div>`;
+
   return renderLayout({
     title: "Mantle Explorer",
     active: "mantle",
     bodyClass: "theme-dark",
     bgCanvas: true,
+    currency,
     body: `<section class="bs-hero bs-hero-dark">
       <div class="bs-hero-inner">
         <h1 class="bs-title">Mantle intelligence<br/><span class="bs-title-accent">Expand your exploration</span></h1>
@@ -33,10 +43,11 @@ export function renderMantleDemoPage(input: {
           <a class="bs-action-btn primary" href="#search">Search on chain</a>
           <a class="bs-action-btn" href="/docs">Explore API</a>
         </div>
-        <form class="bs-search" action="/search" method="get" id="search">
+        <form class="bs-search" action="/mantle-demo/search" method="get" id="search">
           <span class="bs-search-icon">&#x1F50D;</span>
-          <input name="q" placeholder="Search by address / token / symbol..." aria-label="Search Mantle assets" autocomplete="off" />
+          <input name="q" placeholder="Search by token / symbol / name..." aria-label="Search assets" autocomplete="off" />
         </form>
+        ${errorBanner}
         <div class="bs-cat-tags">
           <span class="bs-cat-label">Try searching by:</span>
           ${categoryTags}
@@ -47,11 +58,137 @@ export function renderMantleDemoPage(input: {
     <section class="bs-featured">
       <h2 class="bs-section-title">Featured assets</h2>
       <p class="bs-section-sub">Select a token to investigate intelligence signals</p>
-      <div class="bs-asset-tags">${assetTags}</div>
-    </section>`,
-    script: heroParticleScript
+      ${featuredBody}
+    </section>
+
+    ${chatWidgetMarkup}`,
+    script: `${chatWidgetStyle}\n${heroParticleScript}\n${chatWidgetScript}`
   });
 }
+
+const chatWidgetMarkup = `<div id="bs-chat" class="bs-chat" data-open="false">
+  <button type="button" class="bs-chat-toggle" aria-label="Open chat assistant" aria-expanded="false">
+    <span class="bs-chat-toggle-icon">&#x1F4AC;</span>
+    <span class="bs-chat-toggle-label">Ask Sentinel</span>
+  </button>
+  <section class="bs-chat-panel" role="dialog" aria-label="Sentinel assistant" aria-hidden="true">
+    <header class="bs-chat-header">
+      <div>
+        <strong>Sentinel assistant</strong>
+        <small>Ask about any of the 20 catalog assets</small>
+      </div>
+      <button type="button" class="bs-chat-close" aria-label="Close chat">&times;</button>
+    </header>
+    <div class="bs-chat-log" role="log" aria-live="polite"></div>
+    <form class="bs-chat-form" autocomplete="off">
+      <input type="text" name="message" maxlength="1000" placeholder="Ask about an asset..." aria-label="Chat message" required />
+      <button type="submit">Send</button>
+    </form>
+  </section>
+</div>`;
+
+const chatWidgetStyle = `<style>
+  .bs-chat { position: fixed; right: 20px; bottom: 20px; z-index: 50; font-family: inherit; color: #e8e6f5; }
+  .bs-chat-toggle { display: inline-flex; align-items: center; gap: 8px; padding: 12px 18px; border: none; border-radius: 999px; background: linear-gradient(135deg,#7a6bff,#b59cff); color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; box-shadow: 0 10px 28px rgba(122,107,255,0.45); }
+  .bs-chat-toggle-icon { font-size: 16px; }
+  .bs-chat[data-open="true"] .bs-chat-toggle { display: none; }
+  .bs-chat-panel { display: none; flex-direction: column; width: 360px; height: 460px; background: #14122a; border: 1px solid rgba(150,135,255,0.25); border-radius: 16px; box-shadow: 0 24px 60px rgba(0,0,0,0.55); overflow: hidden; }
+  .bs-chat[data-open="true"] .bs-chat-panel { display: flex; }
+  .bs-chat-header { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: rgba(122,107,255,0.12); border-bottom: 1px solid rgba(150,135,255,0.2); }
+  .bs-chat-header small { display: block; font-size: 11px; opacity: 0.65; margin-top: 2px; }
+  .bs-chat-close { background: none; border: none; color: inherit; font-size: 22px; line-height: 1; cursor: pointer; padding: 4px 8px; }
+  .bs-chat-log { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 10px; font-size: 13px; line-height: 1.45; }
+  .bs-chat-msg { padding: 8px 12px; border-radius: 12px; max-width: 85%; white-space: pre-wrap; word-wrap: break-word; }
+  .bs-chat-msg-user { align-self: flex-end; background: rgba(122,107,255,0.28); }
+  .bs-chat-msg-bot { align-self: flex-start; background: rgba(255,255,255,0.06); }
+  .bs-chat-msg-error { align-self: flex-start; background: rgba(255,90,90,0.15); color: #ffb1b1; }
+  .bs-chat-msg-pending { opacity: 0.6; font-style: italic; }
+  .bs-chat-form { display: flex; gap: 8px; padding: 10px; border-top: 1px solid rgba(150,135,255,0.2); background: rgba(0,0,0,0.2); }
+  .bs-chat-form input { flex: 1; padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(150,135,255,0.25); background: rgba(255,255,255,0.04); color: inherit; font-size: 13px; }
+  .bs-chat-form input:focus { outline: none; border-color: rgba(150,135,255,0.6); }
+  .bs-chat-form button { padding: 8px 14px; border-radius: 8px; border: none; background: linear-gradient(135deg,#7a6bff,#b59cff); color: #fff; font-weight: 600; cursor: pointer; }
+  .bs-chat-form button:disabled { opacity: 0.5; cursor: wait; }
+  @media (max-width: 480px) {
+    .bs-chat { right: 12px; bottom: 12px; left: 12px; }
+    .bs-chat-panel { width: auto; height: 70vh; }
+  }
+</style>`;
+
+const chatWidgetScript = `<script>
+(function () {
+  var root = document.getElementById("bs-chat");
+  if (!root) return;
+  var toggle = root.querySelector(".bs-chat-toggle");
+  var closeBtn = root.querySelector(".bs-chat-close");
+  var panel = root.querySelector(".bs-chat-panel");
+  var log = root.querySelector(".bs-chat-log");
+  var form = root.querySelector(".bs-chat-form");
+  var input = form.querySelector("input[name=message]");
+  var submitBtn = form.querySelector("button[type=submit]");
+  var history = [];
+  var seeded = false;
+
+  function setOpen(open) {
+    root.setAttribute("data-open", open ? "true" : "false");
+    toggle.setAttribute("aria-expanded", open ? "true" : "false");
+    panel.setAttribute("aria-hidden", open ? "false" : "true");
+    if (open) {
+      if (!seeded) {
+        appendMsg("bot", "Hi! Ask me about any asset in the catalog — e.g. \\"tell me about mETH\\" or \\"which stablecoins are listed?\\"");
+        seeded = true;
+      }
+      setTimeout(function () { input.focus(); }, 50);
+    }
+  }
+
+  function appendMsg(role, text, extraClass) {
+    var div = document.createElement("div");
+    div.className = "bs-chat-msg bs-chat-msg-" + role + (extraClass ? " " + extraClass : "");
+    div.textContent = text;
+    log.appendChild(div);
+    log.scrollTop = log.scrollHeight;
+    return div;
+  }
+
+  toggle.addEventListener("click", function () { setOpen(true); });
+  closeBtn.addEventListener("click", function () { setOpen(false); });
+
+  form.addEventListener("submit", async function (ev) {
+    ev.preventDefault();
+    var message = input.value.trim();
+    if (!message) return;
+
+    appendMsg("user", message);
+    input.value = "";
+    submitBtn.disabled = true;
+    var pending = appendMsg("bot", "Thinking...", "bs-chat-msg-pending");
+
+    try {
+      var res = await fetch("/mantle-demo/chat", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ message: message, history: history })
+      });
+      var data = await res.json();
+      pending.remove();
+      if (!res.ok || !data.ok) {
+        appendMsg("bot", data.error || "Sorry, something went wrong.", "bs-chat-msg-error");
+      } else {
+        appendMsg("bot", data.answer);
+        history.push({ role: "user", content: message });
+        history.push({ role: "assistant", content: data.answer });
+        if (history.length > 20) history = history.slice(-20);
+      }
+    } catch (err) {
+      pending.remove();
+      appendMsg("bot", "Network error — try again.", "bs-chat-msg-error");
+    } finally {
+      submitBtn.disabled = false;
+      input.focus();
+    }
+  });
+})();
+</script>`;
 
 // Particle-network animation for the hero. Primary path uses Three.js (`three`
 // is an installed dependency, served from node_modules at /vendor/three.module.js

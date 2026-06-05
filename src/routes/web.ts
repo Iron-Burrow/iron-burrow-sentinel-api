@@ -1,8 +1,10 @@
+import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { extname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import type { Context } from "hono";
+import { getCookie, setCookie } from "hono/cookie";
 
 import { renderApiKeysPage } from "../../views/api-keys.js";
 import { renderAssetNotFoundPage, renderCanonicalAssetPage } from "../../views/asset.js";
@@ -14,6 +16,13 @@ import { renderMantleDemoPage } from "../../views/mantle-demo.js";
 import { renderSearchResultsPage } from "../../views/search-results.js";
 import { renderStatusPage } from "../../views/status.js";
 import { renderUsagePage } from "../../views/usage.js";
+import {
+  findMantleChainMap,
+  getIronBurrowAsset,
+  listIronBurrowAssets,
+  resolveIronBurrow,
+  type Currency
+} from "../clients/iron-burrow.js";
 import {
   findPublicAssetByAddress,
   findPublicAssetBySlug,
@@ -70,18 +79,87 @@ export function statusPageRoute(c: Context<AppBindings>): Response {
 }
 
 export async function mantleDemoPageRoute(c: Context<AppBindings>): Promise<Response> {
-  const provider = c.get("services").mantleProvider;
-  const featured = [
-    "0x4444444444444444444444444444444444444444",
-    "0x5555555555555555555555555555555555555555",
-    "0x6666666666666666666666666666666666666666"
-  ];
-  const [assets, liquidity] = await Promise.all([
-    Promise.all(featured.map((address) => provider.getAssetSummary(address))),
-    provider.getLiquidityDelta()
-  ]);
+  const assets = await listIronBurrowAssets();
+  const error = c.req.query("error") ?? null;
+  return c.html(renderMantleDemoPage({ assets, error, currency: readCurrency(c) }));
+}
 
-  return c.html(renderMantleDemoPage({ assets, liquidity }));
+function readCurrency(c: Context<AppBindings>): Currency {
+  return getCookie(c, "currency") === "MXN" ? "MXN" : "USD";
+}
+
+export function currencyRoute(c: Context<AppBindings>): Response {
+  const value = c.req.param("value");
+  const currency: Currency = value === "MXN" ? "MXN" : "USD";
+  setCookie(c, "currency", currency, {
+    path: "/",
+    maxAge: 60 * 60 * 24 * 365, // 1 year
+    sameSite: "Lax"
+  });
+  const back = c.req.header("referer") ?? "/";
+  return c.redirect(back);
+}
+
+export async function mantleDemoSearchRoute(c: Context<AppBindings>): Promise<Response> {
+  const query = (c.req.query("q") ?? "").trim();
+  if (!query) {
+    return c.redirect("/mantle-demo");
+  }
+
+  const hit = await resolveIronBurrow(query);
+  if (!hit) {
+    const params = new URLSearchParams({ error: `No asset matched "${query}".` });
+    return c.redirect(`/mantle-demo?${params.toString()}`);
+  }
+  return c.redirect(`/mantle/asset/${hit.asset.asset_id}`);
+}
+
+export async function mantleDemoChatRoute(c: Context<AppBindings>): Promise<Response> {
+  const { chatAi } = c.get("services");
+
+  if (!chatAi.enabled) {
+    return c.json(
+      { ok: false, error: "Chat is not configured — set GEMINI_API_KEY on the server." },
+      503
+    );
+  }
+
+  let body: { message?: unknown; history?: unknown };
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json({ ok: false, error: "Invalid JSON body." }, 400);
+  }
+
+  const message = typeof body.message === "string" ? body.message.trim() : "";
+  if (!message) {
+    return c.json({ ok: false, error: "Message is required." }, 400);
+  }
+  if (message.length > 1000) {
+    return c.json({ ok: false, error: "Message too long (max 1000 chars)." }, 400);
+  }
+
+  const history = Array.isArray(body.history)
+    ? body.history
+        .filter(
+          (turn): turn is { role: "user" | "assistant"; content: string } =>
+            typeof turn === "object" &&
+            turn !== null &&
+            (turn as { role?: unknown }).role !== undefined &&
+            ((turn as { role: string }).role === "user" || (turn as { role: string }).role === "assistant") &&
+            typeof (turn as { content?: unknown }).content === "string"
+        )
+        .map((turn) => ({ role: turn.role, content: turn.content.slice(0, 2000) }))
+    : [];
+
+  try {
+    const assets = await listIronBurrowAssets();
+    const reply = await chatAi.ask({ message, history, assets });
+    return c.json({ ok: true, answer: reply.answer });
+  } catch (err) {
+    console.error("[chat] failed:", err);
+    return c.json({ ok: false, error: "Chat request failed." }, 500);
+  }
 }
 
 export async function searchPageRoute(c: Context<AppBindings>): Promise<Response> {
@@ -175,20 +253,74 @@ export async function canonicalAssetPageRoute(c: Context<AppBindings>): Promise<
 }
 
 export async function mantleAssetPageRoute(c: Context<AppBindings>): Promise<Response> {
-  const address = c.req.param("address") ?? "";
+  const param = c.req.param("slug") ?? "";
 
-  if (!isMantleAddress(address)) {
-    return c.html(renderMantleAssetErrorPage("Address must be a 20-byte EVM address."), 400);
+  // Legacy address-based access: keep working so existing /search redirects
+  // and JSON tests that hit /mantle/asset/0x... still resolve.
+  if (isMantleAddress(param)) {
+    const normalizedAddress = normalizeMantleAddress(param);
+    const payload = await buildPublicMantleAssetPayload(c, normalizedAddress);
+    return c.html(
+      renderMantleAssetPage({
+        asset: payload.catalogAsset,
+        payload,
+        hasMantleChainMap: true
+      })
+    );
   }
 
-  const normalizedAddress = normalizeMantleAddress(address);
-  const payload = await buildPublicMantleAssetPayload(c, normalizedAddress);
+  const currency = readCurrency(c);
+  const detail = await getIronBurrowAsset(param, { currency });
+  if (!detail) {
+    return c.html(
+      renderMantleAssetErrorPage(`No asset found for "${param}".`),
+      param.startsWith("0x") ? 400 : 404
+    );
+  }
+
+  const mantleMap = findMantleChainMap(detail.chain_maps);
+  const mantleAddress = mantleMap?.address ?? deriveDemoAddress(detail.asset.asset_id);
+  const payload = await buildPublicMantleAssetPayload(c, normalizeMantleAddress(mantleAddress));
+
+  // Pick the displayed price: latest point from the priceSeries enrichment
+  // (the only place upstream emits non-USD prices), fall back to the USD spot
+  // when the series is unavailable for this asset.
+  const latestSeriesPoint = detail.price_series?.points.at(-1) ?? null;
+  const seriesCurrencyMatches =
+    latestSeriesPoint != null && detail.price_series?.quoteCurrency === currency;
+  const displayPrice = seriesCurrencyMatches ? latestSeriesPoint!.price : detail.price?.price ?? null;
+  const displayCurrency: Currency = seriesCurrencyMatches ? currency : "USD";
+
+  payload.summary = {
+    ...payload.summary,
+    symbol: detail.asset.symbol,
+    name: detail.asset.name,
+    price_usd: displayPrice,
+    price_7d_high: null,
+    price_7d_low: null
+  };
+
   return c.html(
     renderMantleAssetPage({
       asset: payload.catalogAsset,
-      payload
+      payload,
+      slug: detail.asset.asset_id,
+      category: detail.asset.category,
+      hasMantleChainMap: mantleMap !== null && mantleMap.address !== null,
+      priceMeta: detail.price,
+      displayCurrency,
+      requestedCurrency: currency,
+      seriesPoint: latestSeriesPoint
     })
   );
+}
+
+// Stable 20-byte address derived from an asset slug. Used so the synthetic
+// Mantle provider returns consistent demo data for assets that have no real
+// Mantle chain map.
+function deriveDemoAddress(slug: string): string {
+  const hex = createHash("sha256").update(`mantle-demo:${slug}`).digest("hex").slice(0, 40);
+  return `0x${hex}`;
 }
 
 async function buildPublicMantleAssetPayload(

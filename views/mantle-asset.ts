@@ -1,5 +1,29 @@
+import type { Currency, IronBurrowPrice, IronBurrowPricePoint } from "../src/clients/iron-burrow.js";
 import type { PublicCanonicalAsset, PublicMantleAssetPayload } from "../src/public-catalog.js";
 import { emptyState, escapeHtml, renderLayout } from "./layout.js";
+
+function formatPrice(value: string): string {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return value;
+  if (num >= 1000) return num.toLocaleString("en-US", { maximumFractionDigits: 2 });
+  if (num >= 1) return num.toFixed(4);
+  return num.toFixed(6);
+}
+
+function currencyPrefix(currency: Currency): string {
+  return currency === "MXN" ? "MX$" : "$";
+}
+
+function formatRecordedAt(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  const mins = Math.round((Date.now() - d.getTime()) / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.round(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  return `${Math.round(hours / 24)}d ago`;
+}
 
 function formatUsd(value: string): string {
   const num = Number(value);
@@ -33,11 +57,43 @@ function priceRangeBar(current: string, low: string, high: string): string {
   </div>`;
 }
 
-export function renderMantleAssetPage(input: { asset: PublicCanonicalAsset | null; payload: PublicMantleAssetPayload }): string {
-  const { payload } = input;
+export function renderMantleAssetPage(input: {
+  asset: PublicCanonicalAsset | null;
+  payload: PublicMantleAssetPayload;
+  slug?: string;
+  category?: string;
+  hasMantleChainMap?: boolean;
+  priceMeta?: IronBurrowPrice | null;
+  displayCurrency?: Currency;
+  requestedCurrency?: Currency;
+  seriesPoint?: IronBurrowPricePoint | null;
+}): string {
+  const {
+    payload,
+    slug,
+    category,
+    hasMantleChainMap = false,
+    priceMeta,
+    displayCurrency = "USD",
+    requestedCurrency = "USD",
+    seriesPoint
+  } = input;
   const s = payload.summary;
   const c = payload.concentration;
   const signal = payload.liquiditySignal;
+  const hasLivePrice = s.price_usd != null;
+  const priceSymbol = currencyPrefix(displayCurrency);
+  const mxnRequestedButFallback = requestedCurrency === "MXN" && displayCurrency === "USD";
+
+  // Source line: priceSeries point if we used it, else the spot meta.
+  const sourceLabel = seriesPoint && displayCurrency !== "USD"
+    ? `${seriesPoint.sourceType} · ${formatRecordedAt(seriesPoint.sourcePublishedAt)}`
+    : priceMeta
+      ? `${priceMeta.source_type} · ${formatRecordedAt(priceMeta.recorded_at)}${priceMeta.status === "stale" ? " · stale" : ""}`
+      : "";
+  const priceSourceLine = hasLivePrice && sourceLabel
+    ? `<span class="bs-stat-sub" style="display:block;font-size:11px;opacity:0.6;margin-top:2px;font-weight:400">${escapeHtml(sourceLabel)}${mxnRequestedButFallback ? " · MXN unavailable, showing USD" : ""}</span>`
+    : "";
 
   const accumulators = payload.holders.holders
     .filter((h) => h.change_percent_7d !== null && Number(h.change_percent_7d) > 3);
@@ -83,6 +139,7 @@ export function renderMantleAssetPage(input: { asset: PublicCanonicalAsset | nul
   return renderLayout({
     title: s.symbol,
     active: "mantle",
+    currency: displayCurrency,
     body: `<div class="bs-detail-back">
       <a href="/mantle-demo">&larr; Back to explorer</a>
     </div>
@@ -91,19 +148,23 @@ export function renderMantleAssetPage(input: { asset: PublicCanonicalAsset | nul
       <div class="bs-token-title">
         <span class="bs-token-icon">${escapeHtml(s.symbol.slice(0, 2))}</span>
         <h1>${escapeHtml(s.name)} (${escapeHtml(s.symbol)})</h1>
-        <span class="bs-badge">ERC-20</span>
-        <span class="bs-badge secondary">Mantle L2</span>
+        ${category ? `<span class="bs-badge">${escapeHtml(category)}</span>` : ""}
+        ${hasMantleChainMap ? `<span class="bs-badge secondary">Mantle L2</span>` : ""}
         ${signal ? `<span class="bs-badge ${signal.signal === "inflow" ? "positive" : "negative"}">${signal.signal === "inflow" ? "\u2191" : "\u2193"} ${escapeHtml(signal.liquidity_delta_percent)}% 24h</span>` : ""}
       </div>
       <div class="bs-token-contract">
-        <span class="mono">${escapeHtml(payload.address)}</span>
+        ${slug ? `<span class="mono">${escapeHtml(slug)}</span>` : ""}
+        ${hasMantleChainMap ? `<span class="mono bs-token-contract-addr">${escapeHtml(payload.address)}</span>` : ""}
       </div>
     </section>
 
     <section class="bs-stats">
       <div class="bs-stat-row">
         <span class="bs-stat-label">Price</span>
-        <span class="bs-stat-value">${escapeHtml(s.price_usd ? `$${s.price_usd}` : "Unavailable")}</span>
+        <span class="bs-stat-value">
+          ${s.price_usd ? `${priceSymbol}${escapeHtml(formatPrice(s.price_usd))} ${escapeHtml(displayCurrency)}` : "Unavailable"}
+          ${priceSourceLine}
+        </span>
       </div>
       <div class="bs-stat-row">
         <span class="bs-stat-label">Liquidity</span>

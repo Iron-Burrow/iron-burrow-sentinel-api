@@ -5,6 +5,7 @@ import { requireApiKey } from "./middleware/auth.js";
 import { rateLimitMiddleware } from "./middleware/rate-limit.js";
 import { requestIdMiddleware } from "./middleware/request-id.js";
 import { usageLogMiddleware } from "./middleware/usage-log.js";
+import { ChatAiClient } from "./clients/chat-ai.js";
 import { MockMantleProvider } from "./providers/mock-mantle-provider.js";
 import { HttpPriceQlClient } from "./providers/price-ql-client.js";
 import { createApiKeyRoute, listApiKeysRoute, revokeApiKeyRoute } from "./routes/api-keys.js";
@@ -22,11 +23,14 @@ import { healthRoute, statusRoute } from "./routes/status.js";
 import {
   apiKeysPageRoute,
   canonicalAssetPageRoute,
+  currencyRoute,
   dashboardPageRoute,
   docsPageRoute,
   landingPageRoute,
   mantleAssetPageRoute,
+  mantleDemoChatRoute,
   mantleDemoPageRoute,
+  mantleDemoSearchRoute,
   mediaAssetRoute,
   publicCanonicalAssetRoute,
   publicMantleAssetRoute,
@@ -53,7 +57,8 @@ export function createApp(options: CreateAppOptions = {}) {
   const services: AppServices = {
     env,
     mantleProvider: options.mantleProvider ?? new MockMantleProvider(),
-    priceQlClient: options.priceQlClient ?? new HttpPriceQlClient(env)
+    priceQlClient: options.priceQlClient ?? new HttpPriceQlClient(env),
+    chatAi: new ChatAiClient(env.GEMINI_API_KEY, env.GEMINI_CHAT_MODEL)
   };
   const app = new Hono<AppBindings>();
 
@@ -77,11 +82,14 @@ export function createApp(options: CreateAppOptions = {}) {
   app.get("/app", dashboardPageRoute);
   app.get("/search", searchPageRoute);
   app.get("/asset/:slug", canonicalAssetPageRoute);
-  app.get("/mantle/asset/:address", mantleAssetPageRoute);
+  app.get("/mantle/asset/:slug", mantleAssetPageRoute);
   app.get("/api-keys", apiKeysPageRoute);
   app.get("/usage", usagePageRoute);
   app.get("/status", statusPageRoute);
   app.get("/mantle-demo", mantleDemoPageRoute);
+  app.get("/mantle-demo/search", mantleDemoSearchRoute);
+  app.post("/mantle-demo/chat", mantleDemoChatRoute);
+  app.get("/currency/:value", currencyRoute);
   app.get("/public/:file", publicAssetRoute);
   app.get("/vendor/:file", vendorAssetRoute);
   app.get("/media/:file", mediaAssetRoute);
