@@ -310,7 +310,8 @@ export async function mantleAssetPageRoute(c: Context<AppBindings>): Promise<Res
       priceMeta: detail.price,
       displayCurrency,
       requestedCurrency: currency,
-      seriesPoint: latestSeriesPoint
+      seriesPoint: latestSeriesPoint,
+      priceSeries: detail.price_series
     })
   );
 }
