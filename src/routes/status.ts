@@ -1,37 +1,13 @@
 import type { Context } from "hono";
 
-import { checkDb } from "../db/client.js";
+import { getCapabilities, getChains, getNetworks, getStatus } from "../services/status-service.js";
+import { ok } from "../services/responses.js";
 import type { AppBindings } from "../types.js";
 
 export async function statusRoute(c: Context<AppBindings>): Promise<Response> {
-  const services = c.get("services");
-  const db = await checkDb(services.env.DATABASE_URL);
+  const result = await getStatus(c.get("services"));
 
-  return c.json({
-    ok: true,
-    service: "iron-burrow-sentinel-api",
-    version: process.env.npm_package_version ?? "0.1.0",
-    environment: services.env.NODE_ENV,
-    database: {
-      ok: db.ok,
-      latency_ms: db.latencyMs
-    },
-    price_backend: {
-      mode: services.env.PRICE_BACKEND,
-      configured: services.priceQlClient.configured
-    },
-    public_boundary: {
-      exposes_private_rpc: false,
-      exposes_private_indexers: false,
-      exposes_internal_gateway: false
-    },
-    data_availability: {
-      primary_chain: "mantle",
-      mode: "demo-provider",
-      is_partial: true,
-      message: "Sentinel is serving mock Mantle demo data until private providers are connected behind the public interface."
-    }
-  });
+  return ok(c, result.data, result.meta);
 }
 
 export function healthRoute(c: Context<AppBindings>): Response {
@@ -40,4 +16,19 @@ export function healthRoute(c: Context<AppBindings>): Response {
     service: "iron-burrow-sentinel-api",
     message: "Sentinel is ready to serve public requests."
   });
+}
+
+export function chainsRoute(c: Context<AppBindings>): Response {
+  const result = getChains();
+  return c.json(result);
+}
+
+export function networksRoute(c: Context<AppBindings>): Response {
+  const result = getNetworks();
+  return c.json(result);
+}
+
+export function capabilitiesRoute(c: Context<AppBindings>): Response {
+  const result = getCapabilities(c.get("services"));
+  return c.json(result);
 }

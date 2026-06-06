@@ -1,5 +1,7 @@
 import type { Context } from "hono";
 
+import { fail, ok } from "../services/responses.js";
+import { getLatestPrice, getPriceAt, getPriceHistory } from "../services/price-service.js";
 import type { AppBindings } from "../types.js";
 
 function cloneSearchParams(c: Context<AppBindings>): URLSearchParams {
@@ -15,8 +17,17 @@ function safeStatus(status: number): 200 | 400 | 401 | 404 | 429 | 502 | 503 {
 }
 
 export async function latestPriceRoute(c: Context<AppBindings>): Promise<Response> {
-  const result = await c.get("services").priceQlClient.requestLatest(cloneSearchParams(c));
-  return c.json(result.payload, safeStatus(result.status));
+  const result = await getLatestPrice(c.get("services"), cloneSearchParams(c));
+
+  if (!result.ok) {
+    return fail(c, result.status, {
+      code: result.code,
+      message: result.message,
+      details: result.details
+    });
+  }
+
+  return ok(c, result.data, result.meta);
 }
 
 export async function priceSeriesRoute(c: Context<AppBindings>): Promise<Response> {
@@ -28,4 +39,27 @@ export async function priceSeriesRoute(c: Context<AppBindings>): Promise<Respons
 
   const result = await c.get("services").priceQlClient.requestSeries(params);
   return c.json(result.payload, safeStatus(result.status));
+}
+
+export async function priceHistoryRoute(c: Context<AppBindings>): Promise<Response> {
+  const result = await getPriceHistory(c.get("services"), cloneSearchParams(c));
+
+  if (!result.ok) {
+    return fail(c, result.status, {
+      code: result.code,
+      message: result.message,
+      details: result.details
+    });
+  }
+
+  return ok(c, result.data, result.meta);
+}
+
+export function priceAtRoute(c: Context<AppBindings>): Response {
+  const result = getPriceAt();
+  return fail(c, result.status, {
+    code: result.code,
+    message: result.message,
+    details: result.details
+  });
 }

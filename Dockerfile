@@ -15,7 +15,7 @@ WORKDIR /app
 RUN corepack enable
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN pnpm typecheck && pnpm exec tsc -p tsconfig.json
+RUN pnpm typecheck && pnpm exec tsc -p tsconfig.build.json
 
 # ── production image ──────────────────────────────────────────────────────────
 FROM node:22-alpine AS runner
@@ -29,10 +29,12 @@ RUN corepack enable
 COPY package.json pnpm-lock.yaml* ./
 RUN pnpm install --frozen-lockfile --prod
 
-# Compiled output and migrations
+# Compiled output and runtime assets
 COPY --from=build /app/dist ./dist
-COPY migrations ./migrations
+COPY migrations ./dist/migrations
+COPY public ./dist/public
+COPY media ./dist/media
 
 EXPOSE 3000
 
-CMD ["node", "dist/index.js"]
+CMD ["node", "dist/src/index.js"]
