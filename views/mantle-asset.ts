@@ -41,6 +41,22 @@ function truncAddr(address: string): string {
   return `${address.slice(0, 10)}...${address.slice(-6)}`;
 }
 
+function signedPercentText(value: string): string {
+  const numericValue = Number(value);
+  const unsignedValue = value.replace(/^\+/, "");
+  const sign = numericValue > 0 ? "+" : "";
+
+  return `${sign}${escapeHtml(unsignedValue)}%`;
+}
+
+function signedPercentClass(value: string): string {
+  const numericValue = Number(value);
+
+  if (numericValue > 0) return "text-positive";
+  if (numericValue < 0) return "text-negative";
+  return "";
+}
+
 function renderPriceChart(
   series: IronBurrowPriceSeries | null,
   currency: Currency,
