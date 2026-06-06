@@ -1,5 +1,34 @@
+import type {
+  Currency,
+  IronBurrowPrice,
+  IronBurrowPricePoint,
+  IronBurrowPriceSeries
+} from "../src/clients/iron-burrow.js";
 import type { PublicCanonicalAsset, PublicMantleAssetPayload } from "../src/public-catalog.js";
 import { emptyState, escapeHtml, renderLayout } from "./layout.js";
+
+function formatPrice(value: string): string {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return value;
+  if (num >= 1000) return num.toLocaleString("en-US", { maximumFractionDigits: 2 });
+  if (num >= 1) return num.toFixed(4);
+  return num.toFixed(6);
+}
+
+function currencyPrefix(currency: Currency): string {
+  return currency === "MXN" ? "MX$" : "$";
+}
+
+function formatRecordedAt(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  const mins = Math.round((Date.now() - d.getTime()) / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.round(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  return `${Math.round(hours / 24)}d ago`;
+}
 
 function formatUsd(value: string): string {
   const num = Number(value);
@@ -10,6 +39,85 @@ function formatUsd(value: string): string {
 
 function truncAddr(address: string): string {
   return `${address.slice(0, 10)}...${address.slice(-6)}`;
+}
+
+function renderPriceChart(
+  series: IronBurrowPriceSeries | null,
+  currency: Currency,
+  symbol: string
+): string {
+  if (!series || series.points.length < 2) {
+    return `<div class="bs-empty-chart" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;min-height:280px;padding:32px;text-align:center;color:#666">
+      <strong style="margin-bottom:6px">No price history available</strong>
+      <p style="font-size:13px;margin:0;opacity:0.7">Iron Burrow priceSeries is temporarily unavailable for this asset.</p>
+    </div>`;
+  }
+
+  const values = series.points.map((p) => Number(p.price)).filter(Number.isFinite);
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const first = values[0];
+  const last = values[values.length - 1];
+  const delta = last - first;
+  const deltaPct = first !== 0 ? (delta / first) * 100 : 0;
+  const positive = delta >= 0;
+
+  // Build SVG path. ViewBox is 100x60 with a 5-unit top/bottom padding.
+  const W = 100;
+  const H = 60;
+  const PAD = 5;
+  const range = max - min || 1;
+  const xy = values.map((v, i) => {
+    const x = (i / (values.length - 1)) * W;
+    const y = H - PAD - ((v - min) / range) * (H - PAD * 2);
+    return { x, y };
+  });
+  const linePath = xy.map((p, i) => `${i === 0 ? "M" : "L"}${p.x.toFixed(2)},${p.y.toFixed(2)}`).join(" ");
+  const areaPath = `${linePath} L${W},${H} L0,${H} Z`;
+
+  const lineColor = positive ? "#22c55e" : "#ef4444";
+  const fillStart = positive ? "rgba(34,197,94,0.30)" : "rgba(239,68,68,0.30)";
+
+  const prefix = symbol;
+  const formatTick = (v: number) =>
+    v >= 1000 ? v.toLocaleString("en-US", { maximumFractionDigits: 0 }) : v >= 1 ? v.toFixed(2) : v.toFixed(4);
+  const firstTs = new Date(series.points[0].bucketStart);
+  const lastTs = new Date(series.points[series.points.length - 1].bucketStart);
+  const tsLabel = (d: Date) => `${d.getUTCHours().toString().padStart(2, "0")}:00`;
+
+  return `<div style="display:flex;flex-direction:column;width:100%;flex:1;min-width:0;padding:18px 20px;gap:12px">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start">
+      <div>
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:#666;font-weight:600">Last ${escapeHtml(series.window)}</div>
+        <div style="font-size:22px;font-weight:700;margin-top:4px">${escapeHtml(prefix)}${escapeHtml(formatTick(last))}<span style="font-size:13px;opacity:0.6;margin-left:6px;font-weight:500">${escapeHtml(currency)}</span></div>
+      </div>
+      <div style="text-align:right">
+        <div style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:999px;background:${positive ? "rgba(34,197,94,0.12)" : "rgba(239,68,68,0.12)"};color:${lineColor};font-weight:600;font-size:13px">
+          ${positive ? "▲" : "▼"} ${escapeHtml(deltaPct.toFixed(2))}%
+        </div>
+        <div style="font-size:11px;opacity:0.55;margin-top:4px">${positive ? "+" : ""}${escapeHtml(formatTick(delta))} ${escapeHtml(currency)}</div>
+      </div>
+    </div>
+    <div style="flex:1;position:relative;min-height:180px">
+      <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="width:100%;height:100%;display:block">
+        <defs>
+          <linearGradient id="chart-fill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="${fillStart}" />
+            <stop offset="100%" stop-color="${positive ? "rgba(34,197,94,0)" : "rgba(239,68,68,0)"}" />
+          </linearGradient>
+        </defs>
+        <path d="${areaPath}" fill="url(#chart-fill)" />
+        <path d="${linePath}" fill="none" stroke="${lineColor}" stroke-width="0.6" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke" />
+      </svg>
+      <div style="position:absolute;top:0;right:0;font-size:10px;opacity:0.5">${escapeHtml(prefix)}${escapeHtml(formatTick(max))}</div>
+      <div style="position:absolute;bottom:0;right:0;font-size:10px;opacity:0.5">${escapeHtml(prefix)}${escapeHtml(formatTick(min))}</div>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:10px;opacity:0.55">
+      <span>${escapeHtml(tsLabel(firstTs))} UTC</span>
+      <span>${series.points.length} pts · ${escapeHtml(series.granularity)} · ${escapeHtml(series.points[0].sourceType)}</span>
+      <span>${escapeHtml(tsLabel(lastTs))} UTC</span>
+    </div>
+  </div>`;
 }
 
 function priceRangeBar(current: string, low: string, high: string): string {
@@ -33,27 +141,45 @@ function priceRangeBar(current: string, low: string, high: string): string {
   </div>`;
 }
 
-function signedPercentText(value: string): string {
-  const numericValue = Number(value);
-  const unsignedValue = value.replace(/^\+/, "");
-  const sign = numericValue > 0 ? "+" : "";
-
-  return `${sign}${escapeHtml(unsignedValue)}%`;
-}
-
-function signedPercentClass(value: string): string {
-  const numericValue = Number(value);
-
-  if (numericValue > 0) return "text-positive";
-  if (numericValue < 0) return "text-negative";
-  return "";
-}
-
-export function renderMantleAssetPage(input: { asset: PublicCanonicalAsset | null; payload: PublicMantleAssetPayload }): string {
-  const { payload } = input;
+export function renderMantleAssetPage(input: {
+  asset: PublicCanonicalAsset | null;
+  payload: PublicMantleAssetPayload;
+  slug?: string;
+  category?: string;
+  hasMantleChainMap?: boolean;
+  priceMeta?: IronBurrowPrice | null;
+  displayCurrency?: Currency;
+  requestedCurrency?: Currency;
+  seriesPoint?: IronBurrowPricePoint | null;
+  priceSeries?: IronBurrowPriceSeries | null;
+}): string {
+  const {
+    payload,
+    slug,
+    category,
+    hasMantleChainMap = false,
+    priceMeta,
+    displayCurrency = "USD",
+    requestedCurrency = "USD",
+    seriesPoint,
+    priceSeries
+  } = input;
   const s = payload.summary;
   const c = payload.concentration;
   const signal = payload.liquiditySignal;
+  const hasLivePrice = s.price_usd != null;
+  const priceSymbol = currencyPrefix(displayCurrency);
+  const mxnRequestedButFallback = requestedCurrency === "MXN" && displayCurrency === "USD";
+
+  // Source line: priceSeries point if we used it, else the spot meta.
+  const sourceLabel = seriesPoint && displayCurrency !== "USD"
+    ? `${seriesPoint.sourceType} · ${formatRecordedAt(seriesPoint.sourcePublishedAt)}`
+    : priceMeta
+      ? `${priceMeta.source_type} · ${formatRecordedAt(priceMeta.recorded_at)}${priceMeta.status === "stale" ? " · stale" : ""}`
+      : "";
+  const priceSourceLine = hasLivePrice && sourceLabel
+    ? `<span class="bs-stat-sub" style="display:block;font-size:11px;opacity:0.6;margin-top:2px;font-weight:400">${escapeHtml(sourceLabel)}${mxnRequestedButFallback ? " · MXN unavailable, showing USD" : ""}</span>`
+    : "";
 
   const accumulators = payload.holders.holders
     .filter((h) => h.change_percent_7d !== null && Number(h.change_percent_7d) > 3);
@@ -99,53 +225,69 @@ export function renderMantleAssetPage(input: { asset: PublicCanonicalAsset | nul
   return renderLayout({
     title: s.symbol,
     active: "mantle",
+    currency: displayCurrency,
     body: `<div class="bs-detail-back">
       <a href="/mantle-demo">&larr; Back to explorer</a>
     </div>
 
-    <section class="bs-token-header">
-      <div class="bs-token-title">
-        <span class="bs-token-icon">${escapeHtml(s.symbol.slice(0, 2))}</span>
-        <h1>${escapeHtml(s.name)} (${escapeHtml(s.symbol)})</h1>
-        <span class="bs-badge">ERC-20</span>
-        <span class="bs-badge secondary">Mantle L2</span>
-        ${signal ? `<span class="bs-badge ${signal.signal === "inflow" ? "positive" : "negative"}">${signal.signal === "inflow" ? "\u2191" : "\u2193"} ${escapeHtml(signal.liquidity_delta_percent)}% 24h</span>` : ""}
+    <div class="bs-header-grid" style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:32px;align-items:stretch;margin-bottom:36px">
+      <div class="bs-header-left" style="display:flex;flex-direction:column;gap:16px">
+        <section class="bs-token-header" style="margin:0">
+          <div class="bs-token-title">
+            <span class="bs-token-icon">${escapeHtml(s.symbol.slice(0, 2))}</span>
+            <h1>${escapeHtml(s.name)} (${escapeHtml(s.symbol)})</h1>
+            ${category ? `<span class="bs-badge">${escapeHtml(category)}</span>` : ""}
+            ${hasMantleChainMap ? `<span class="bs-badge secondary">Mantle L2</span>` : ""}
+            ${signal ? `<span class="bs-badge ${signal.signal === "inflow" ? "positive" : "negative"}">${signal.signal === "inflow" ? "\u2191" : "\u2193"} ${escapeHtml(signal.liquidity_delta_percent)}% 24h</span>` : ""}
+          </div>
+          <div class="bs-token-contract">
+            ${slug ? `<span class="mono">${escapeHtml(slug)}</span>` : ""}
+            ${hasMantleChainMap ? `<span class="mono bs-token-contract-addr">${escapeHtml(payload.address)}</span>` : ""}
+          </div>
+        </section>
+        <section class="bs-stats" style="margin:0">
+          <div class="bs-stat-row">
+            <span class="bs-stat-label">Price</span>
+            <span class="bs-stat-value">
+              ${s.price_usd ? `${priceSymbol}${escapeHtml(formatPrice(s.price_usd))} ${escapeHtml(displayCurrency)}` : "Unavailable"}
+              ${priceSourceLine}
+            </span>
+          </div>
+          <div class="bs-stat-row">
+            <span class="bs-stat-label">Liquidity</span>
+            <span class="bs-stat-value">${formatUsd(s.liquidity_usd)}</span>
+          </div>
+          <div class="bs-stat-row">
+            <span class="bs-stat-label">Holders</span>
+            <span class="bs-stat-value bs-link">${s.holder_count.toLocaleString("en-US")}</span>
+          </div>
+          <div class="bs-stat-row">
+            <span class="bs-stat-label">Top holder</span>
+            <span class="bs-stat-value">${escapeHtml(s.top_holder_percent)}%</span>
+          </div>
+          <div class="bs-stat-row">
+            <span class="bs-stat-label">Decimals</span>
+            <span class="bs-stat-value">${s.decimals}</span>
+          </div>
+          <div class="bs-stat-row">
+            <span class="bs-stat-label">Indexed until block</span>
+            <span class="bs-stat-value mono">#${s.metadata.indexed_until_block.toLocaleString("en-US")}</span>
+          </div>
+          <div class="bs-stat-row">
+            <span class="bs-stat-label">Confidence</span>
+            <span class="bs-stat-value">${escapeHtml(s.metadata.confidence)}</span>
+          </div>
+        </section>
       </div>
-      <div class="bs-token-contract">
-        <span class="mono">${escapeHtml(payload.address)}</span>
-      </div>
-    </section>
-
-    <section class="bs-stats">
-      <div class="bs-stat-row">
-        <span class="bs-stat-label">Price</span>
-        <span class="bs-stat-value">${escapeHtml(s.price_usd ? `$${s.price_usd}` : "Unavailable")}</span>
-      </div>
-      <div class="bs-stat-row">
-        <span class="bs-stat-label">Liquidity</span>
-        <span class="bs-stat-value">${formatUsd(s.liquidity_usd)}</span>
-      </div>
-      <div class="bs-stat-row">
-        <span class="bs-stat-label">Holders</span>
-        <span class="bs-stat-value bs-link">${s.holder_count.toLocaleString("en-US")}</span>
-      </div>
-      <div class="bs-stat-row">
-        <span class="bs-stat-label">Top holder</span>
-        <span class="bs-stat-value">${escapeHtml(s.top_holder_percent)}%</span>
-      </div>
-      <div class="bs-stat-row">
-        <span class="bs-stat-label">Decimals</span>
-        <span class="bs-stat-value">${s.decimals}</span>
-      </div>
-      <div class="bs-stat-row">
-        <span class="bs-stat-label">Indexed until block</span>
-        <span class="bs-stat-value mono">#${s.metadata.indexed_until_block.toLocaleString("en-US")}</span>
-      </div>
-      <div class="bs-stat-row">
-        <span class="bs-stat-label">Confidence</span>
-        <span class="bs-stat-value">${escapeHtml(s.metadata.confidence)}</span>
-      </div>
-    </section>
+      <section class="bs-price-chart-card" style="background:#ffffff;border:1px solid var(--line,#e5e7eb);border-radius:12px;overflow:hidden;display:flex">
+        ${renderPriceChart(priceSeries ?? null, displayCurrency, priceSymbol)}
+      </section>
+    </div>
+    <style>
+      @media (max-width: 780px) {
+        .bs-header-grid { grid-template-columns: 1fr !important; }
+      }
+    </style>
 
     <section class="bs-tabs-section">
       <div class="bs-tabs" role="tablist" aria-label="Mantle asset intelligence">

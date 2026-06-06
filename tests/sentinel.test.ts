@@ -25,6 +25,8 @@ function testEnv(overrides: Partial<SentinelEnv> = {}): SentinelEnv {
     PRICE_QL_INTERNAL_TOKEN: "",
     PRICE_SERVICE_TIMEOUT_MS: 3000,
     PRICE_SERIES_DEFAULT_RANGE: "7d",
+    GEMINI_API_KEY: "",
+    GEMINI_CHAT_MODEL: "gemini-2.0-flash",
     ...overrides
   };
 }

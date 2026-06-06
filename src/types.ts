@@ -1,3 +1,4 @@
+import type { ChatAiClient } from "./clients/chat-ai.js";
 import type { ApiKeyRecord } from "./db/api-keys.js";
 import type { UserRecord } from "./db/users.js";
 import type { SentinelEnv } from "./env.js";
@@ -13,6 +14,7 @@ export interface AppServices {
   env: SentinelEnv;
   mantleProvider: MantleProvider;
   priceQlClient: PriceQlClient;
+  chatAi: ChatAiClient;
 }
 
 export interface AppBindings {
