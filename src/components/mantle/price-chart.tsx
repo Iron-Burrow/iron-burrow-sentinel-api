@@ -35,7 +35,7 @@ export function PriceChart({
           minHeight: 280,
           padding: 32,
           textAlign: "center",
-          color: "#666",
+          color: "rgba(232,230,245,0.6)",
         }}
       >
         <strong style={{ marginBottom: 6 }}>No price history available</strong>
@@ -95,7 +95,7 @@ export function PriceChart({
               fontSize: 11,
               textTransform: "uppercase",
               letterSpacing: "0.06em",
-              color: "#666",
+              color: "rgba(232,230,245,0.55)",
               fontWeight: 600,
             }}
           >

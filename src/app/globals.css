@@ -1368,3 +1368,147 @@
     height: 70vh;
   }
 }
+
+/* ===========================================================================
+   Mantle asset detail — dark theme (matches the explorer palette, no canvas).
+   Scoped to the server-rendered `.mantle-detail` wrapper so there is no
+   light→dark flash and the styling stays local to this page.
+   =========================================================================== */
+body:has(.mantle-detail) {
+  color: #e8e6f5;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(91, 78, 196, 0.42), transparent 55%),
+    linear-gradient(165deg, #0d0b22 0%, #161033 48%, #0a0916 100%);
+  background-attachment: fixed;
+}
+
+@layer components {
+  .mantle-detail {
+    color: #e8e6f5;
+  }
+
+  .mantle-detail .bs-detail-back a {
+    color: #a99bff;
+  }
+
+  /* Surfaces → translucent dark panels */
+  .mantle-detail .bs-token-header,
+  .mantle-detail .bs-stats,
+  .mantle-detail .bs-tabs-section,
+  .mantle-detail .bs-holders-section,
+  .mantle-detail .bs-price-chart-card {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.12);
+  }
+
+  .mantle-detail .bs-stat-row {
+    border-bottom-color: rgba(255, 255, 255, 0.1);
+  }
+  .mantle-detail .bs-stat-label,
+  .mantle-detail .bs-token-contract {
+    color: rgba(255, 255, 255, 0.6);
+  }
+  .mantle-detail .bs-link {
+    color: #a99bff;
+  }
+
+  /* Badges */
+  .mantle-detail .bs-badge {
+    background: rgba(149, 135, 255, 0.18);
+    color: #cdbfff;
+  }
+  .mantle-detail .bs-badge.secondary {
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.7);
+  }
+  .mantle-detail .bs-badge.positive {
+    background: rgba(34, 197, 94, 0.16);
+    color: #5ee08a;
+  }
+  .mantle-detail .bs-badge.negative {
+    background: rgba(239, 68, 68, 0.16);
+    color: #ff9b9b;
+  }
+
+  /* Tabs */
+  .mantle-detail .bs-tabs {
+    border-bottom-color: rgba(255, 255, 255, 0.12);
+  }
+  .mantle-detail .bs-tab {
+    color: rgba(255, 255, 255, 0.55);
+  }
+  .mantle-detail .bs-tab:hover {
+    color: #f4f3ff;
+  }
+  .mantle-detail .bs-tab.active {
+    color: #a99bff;
+    border-bottom-color: #a99bff;
+  }
+  .mantle-detail .bs-question {
+    color: #f4f3ff;
+  }
+
+  /* Intel cards + narrative */
+  .mantle-detail .bs-intel-card {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+  .mantle-detail .bs-intel-label {
+    color: rgba(255, 255, 255, 0.55);
+  }
+  .mantle-detail .bs-narrative {
+    color: rgba(255, 255, 255, 0.6);
+  }
+  .mantle-detail .bs-narrative strong {
+    color: #f4f3ff;
+  }
+  .mantle-detail .bs-muted {
+    color: rgba(255, 255, 255, 0.55);
+  }
+  .mantle-detail .text-positive {
+    color: #5ee08a;
+  }
+  .mantle-detail .text-negative {
+    color: #ff9b9b;
+  }
+
+  /* Concentration bar + price range */
+  .mantle-detail .bs-conc-bar,
+  .mantle-detail .seg-rest,
+  .mantle-detail .bs-price-range-track {
+    background: rgba(255, 255, 255, 0.1);
+  }
+  .mantle-detail .bs-conc-legend,
+  .mantle-detail .bs-price-range-labels {
+    color: rgba(255, 255, 255, 0.6);
+  }
+  .mantle-detail .bs-price-range-pct {
+    color: #a99bff;
+  }
+
+  /* Tables */
+  .mantle-detail .bs-table th {
+    color: rgba(255, 255, 255, 0.55);
+  }
+  .mantle-detail .bs-table th,
+  .mantle-detail .bs-table td {
+    border-bottom-color: rgba(255, 255, 255, 0.1);
+  }
+  .mantle-detail .bs-addr,
+  .mantle-detail .bs-usd {
+    color: rgba(255, 255, 255, 0.55);
+  }
+
+  /* Empty states inside the dark page */
+  .mantle-detail .empty-state {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.12);
+  }
+  .mantle-detail .empty-state p {
+    color: rgba(255, 255, 255, 0.6);
+  }
+  .mantle-detail .empty-state.unavailable {
+    background: rgba(255, 90, 90, 0.08);
+    border-color: rgba(255, 90, 90, 0.3);
+  }
+}

@@ -158,7 +158,7 @@ export default async function MantleAssetPage({
   );
 
   return (
-    <>
+    <div className="mantle-detail">
       <div className="bs-detail-back">
         <a href="/mantle-demo">← Back to explorer</a>
       </div>
@@ -316,6 +316,6 @@ export default async function MantleAssetPage({
           </div>
         )}
       </section>
-    </>
+    </div>
   );
 }
